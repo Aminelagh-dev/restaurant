@@ -1,0 +1,43 @@
+---
+description: Règles schéma base de données et migrations Laravel
+globs: database/**/*.php
+alwaysApply: false
+---
+
+# Base de données
+
+## Tables existantes
+
+| Table | Colonnes clés |
+|-------|---------------|
+| `plats` | libelle, stock, image |
+| `categories` | type |
+| `thematiques` | region |
+| `ingrediants` | produit |
+| `temp_preparations` | duree |
+| `prix` | montant (decimal 8,2) |
+| `clients` | nom, prenom, email |
+| `commandes` | adresse_livraison, statut |
+| `commandes_plats` | pivot (à compléter : plat_id, commande_id, quantite) |
+| `statuts` | libelle |
+
+## Règles migrations
+
+- **Ne jamais modifier** une migration déjà exécutée en prod — créer une nouvelle migration
+- Clés étrangères explicites : `foreignId('plat_id')->constrained('plats')`
+- Index sur colonnes filtrées (statut, created_at des commandes)
+- Seeders pour données de démo : plats marocains, catégories, statuts par défaut
+
+## Relations à ajouter si manquantes
+
+```
+plats → categorie_id, thematique_id, prix_id, temp_preparation_id
+commandes → client_id, statut_id (ou conserver statut string selon choix existant)
+commandes_plats → commande_id, plat_id, quantite, prix_unitaire
+```
+
+## Données métier seed
+
+- Catégories : Entrées, Plats principaux, Desserts, Thés
+- Thématiques : Spécialités de Fès, Marrakech, Casablanca, Rabat
+- Plats exemples : Tagine poulet citron, Couscous royal, Pastilla au pigeon, Rfissa

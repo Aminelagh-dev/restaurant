@@ -1,0 +1,47 @@
+---
+description: Règles métier commandes, panier, stock et statuts livraison
+alwaysApply: false
+---
+
+# Règles métier
+
+## Panier
+
+- Session Laravel ou table temporaire — préférer session pour MVP
+- Structure : `[plat_id => quantite]`
+- Recalculer le total à chaque modification
+- Refuser l'ajout si `stock` = « épuisé » ou quantité = 0
+
+## Passage de commande
+
+Champs obligatoires :
+- Adresse de livraison
+- Nom, prénom, email du destinataire
+- Au moins un plat dans le panier
+
+À la validation :
+1. Créer ou retrouver le `Client`
+2. Créer la `Commande` avec statut initial « En préparation »
+3. Persister les lignes `commandes_plats` avec quantités
+4. Vider le panier
+5. Rediriger vers page de suivi
+
+## Cycle de vie commande (back-office)
+
+```
+En préparation → En cours de livraison → Livrée
+```
+
+- Transitions uniquement dans l'ordre (pas de retour arrière sauf correction admin)
+- Horodatage `updated_at` pour suivi
+
+## Gestion stock
+
+- `stock` : valeurs « disponible » / « épuisé » (string existante)
+- Plat épuisé : visible au menu mais non commandable
+- Pas de suppression physique — désactivation via stock
+
+## Dashboard
+
+- **CA quotidien** : somme des (quantité × prix_unitaire) des commandes du jour
+- **Plats populaires** : agrégation `commandes_plats` groupée par `plat_id`

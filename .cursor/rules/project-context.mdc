@@ -1,0 +1,33 @@
+---
+description: Contexte global du projet plateforme de commande cuisine marocaine
+alwaysApply: true
+---
+
+# Contexte projet — Restaurant Marocain
+
+Ce dépôt est une **plateforme de commande de repas traditionnels marocains** (Laravel 12 + Blade + Tailwind).
+
+## Objectif
+
+- **Front-office** : menu visuel, panier, commande, suivi livraison
+- **Back-office** : CRUD carte, catégories/thématiques, gestion commandes, dashboard stats
+
+## État actuel
+
+- Migrations et modèles squelettes existent ; controllers vides ; routes minimales
+- Nommage français hérité : `Plats`, `Ingrediant`, `Commande`, `Thematique`, `TempPreparation`
+- Relations Eloquent et pivot `commandes_plats` à compléter
+
+## Principes de développement
+
+1. **Minimiser le scope** — une fonctionnalité à la fois, pas de sur-ingénierie
+2. **Respecter les conventions existantes** — ne pas angliciser les noms métier
+3. **Visuel d'abord** — le front-office doit valoriser les images et la présentation des plats
+4. **Statuts commande** — utiliser les libellés métier : « En préparation », « En cours de livraison », « Livrée »
+5. **Stock** — marquer un plat « épuisé » via le champ `stock`, pas via suppression
+
+## Ne pas faire sans demande explicite
+
+- Commits git, push, refonte complète de l'architecture
+- Renommer entités/tables (ex. `Plats` → `Dish`)
+- Ajouter auth complexe si non demandée (le gérant peut utiliser `users` Laravel standard)
