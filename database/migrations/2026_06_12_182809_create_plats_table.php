@@ -13,9 +13,23 @@ return new class extends Migration
     {
         Schema::create('plats', function (Blueprint $table) {
             $table->id();
-            $table->string('libelle');
-            $table->string('stock');
-            $table->string('image');
+
+            $table->foreignId('categorie_id')
+                ->constrained('categories')
+                ->cascadeOnDelete();
+
+            $table->string('nom');
+            $table->text('description');
+            $table->text('ingredients');
+            $table->integer('temps_preparation');
+            $table->decimal('prix', 10, 2);
+
+            $table->string('image')->nullable();
+
+            $table->integer('stock')->default(0);
+
+            $table->boolean('disponible')->default(true);
+
             $table->timestamps();
         });
     }
