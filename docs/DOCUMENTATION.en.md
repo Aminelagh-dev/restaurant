@@ -128,7 +128,7 @@ app/
       SetLocale.php             # Applies the language (fr/en/ar) on each request
       EnsureUserIsAdmin.php     # Restricts /admin to the "admin" role
     Requests/                   # Form Requests (validation)
-  Models/                       # Plats, Categorie, Client, Commande, CommandePlat, User
+  Models/                       # Plat, Categorie, Client, Commande, CommandePlat, User
   Support/
     Panier.php                  # Cart service (session)
 bootstrap/app.php               # Middleware (web + admin alias) + auth redirects
@@ -224,11 +224,11 @@ Six business tables structure the application.
 
 #### Eloquent relationships
 
-- `Categorie` **hasMany** `Plats`
-- `Plats` **belongsTo** `Categorie`; **belongsToMany** `Commande` (via `commande_plat`)
+- `Categorie` **hasMany** `Plat`
+- `Plat` **belongsTo** `Categorie`; **belongsToMany** `Commande` (via `commande_plat`)
 - `Client` **hasMany** `Commande`
-- `Commande` **belongsTo** `Client`; **hasMany** `CommandePlat` (lines); **belongsToMany** `Plats`
-- `CommandePlat` **belongsTo** `Commande` and `Plats`
+- `Commande` **belongsTo** `Client`; **hasMany** `CommandePlat` (lines); **belongsToMany** `Plat`
+- `CommandePlat` **belongsTo** `Commande` and `Plat`
 
 ### 2.4 Route map
 
@@ -347,7 +347,7 @@ The top bar and sidebar display the **logged-in manager** (name + initials) and 
   later change to a dish's price does not alter past orders.
 - **Stock management**: automatic decrement at order time; flagged "unavailable" as
   soon as stock reaches 0. A dish is considered **out of stock** if it is marked
-  unavailable **or** its stock is ≤ 0 (`Plats::estEpuise()`).
+  unavailable **or** its stock is ≤ 0 (`Plat::estEpuise()`).
 - **One customer per phone**: `firstOrCreate` avoids duplicate customers.
 - **History integrity**: a dish already ordered, or a non-empty category, cannot be
   deleted.

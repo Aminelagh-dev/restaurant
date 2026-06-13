@@ -129,7 +129,7 @@ app/
       SetLocale.php             # Applique la langue (fr/en/ar) à chaque requête
       EnsureUserIsAdmin.php     # Réserve /admin au rôle « admin »
     Requests/                   # Form Requests (validation)
-  Models/                       # Plats, Categorie, Client, Commande, CommandePlat, User
+  Models/                       # Plat, Categorie, Client, Commande, CommandePlat, User
   Support/
     Panier.php                  # Service panier (session)
 bootstrap/app.php               # Middlewares (web + alias admin) + redirections auth
@@ -225,11 +225,11 @@ Six tables métier structurent l'application.
 
 #### Relations Eloquent
 
-- `Categorie` **hasMany** `Plats`
-- `Plats` **belongsTo** `Categorie` ; **belongsToMany** `Commande` (via `commande_plat`)
+- `Categorie` **hasMany** `Plat`
+- `Plat` **belongsTo** `Categorie` ; **belongsToMany** `Commande` (via `commande_plat`)
 - `Client` **hasMany** `Commande`
-- `Commande` **belongsTo** `Client` ; **hasMany** `CommandePlat` (lignes) ; **belongsToMany** `Plats`
-- `CommandePlat` **belongsTo** `Commande` et `Plats`
+- `Commande` **belongsTo** `Client` ; **hasMany** `CommandePlat` (lignes) ; **belongsToMany** `Plat`
+- `CommandePlat` **belongsTo** `Commande` et `Plat`
 
 ### 2.4 Cartographie des routes
 
@@ -351,7 +351,7 @@ initiales) et un bouton de **déconnexion**.
   passées.
 - **Gestion du stock** : décrément automatique à la commande ; passage en
   « indisponible » dès que le stock atteint 0. Un plat est considéré **épuisé** s'il
-  est marqué indisponible **ou** si son stock est ≤ 0 (`Plats::estEpuise()`).
+  est marqué indisponible **ou** si son stock est ≤ 0 (`Plat::estEpuise()`).
 - **Client unique par téléphone** : le `firstOrCreate` évite les doublons clients.
 - **Intégrité de l'historique** : impossible de supprimer un plat déjà commandé ou
   une catégorie non vide.

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Categorie;
-use App\Models\Plats;
+use App\Models\Plat;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -39,11 +39,11 @@ class MenuController extends Controller
     /**
      * Détail d'un repas : ingrédients, temps de préparation, prix.
      */
-    public function show(Plats $plat): View
+    public function show(Plat $plat): View
     {
         $plat->load('categorie');
 
-        $similaires = Plats::query()
+        $similaires = Plat::query()
             ->where('categorie_id', $plat->categorie_id)
             ->whereKeyNot($plat->id)
             ->orderByDesc('disponible')

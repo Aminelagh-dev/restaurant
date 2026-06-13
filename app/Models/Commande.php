@@ -50,7 +50,7 @@ class Commande extends Model
 
     public function plats(): BelongsToMany
     {
-        return $this->belongsToMany(Plats::class, 'commande_plat', 'commande_id', 'plat_id')
+        return $this->belongsToMany(Plat::class, 'commande_plat', 'commande_id', 'plat_id')
             ->withPivot(['quantite', 'prix_unitaire', 'sous_total'])
             ->withTimestamps();
     }

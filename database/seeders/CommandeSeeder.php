@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Client;
 use App\Models\Commande;
-use App\Models\Plats;
+use App\Models\Plat;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -15,7 +15,7 @@ class CommandeSeeder extends Seeder
      */
     public function run(): void
     {
-        $plats = Plats::all();
+        $plats = Plat::all();
         if ($plats->isEmpty()) {
             return;
         }

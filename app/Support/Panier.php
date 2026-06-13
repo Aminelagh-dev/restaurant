@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use App\Models\Plats;
+use App\Models\Plat;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Session;
 
@@ -66,7 +66,7 @@ class Panier
      * Lignes détaillées du panier : chaque entrée contient le plat, la
      * quantité et le sous-total. Les plats supprimés sont ignorés.
      *
-     * @return Collection<int,array{plat:Plats,quantite:int,sous_total:float}>
+     * @return Collection<int,array{plat:Plat,quantite:int,sous_total:float}>
      */
     public static function lignes(): Collection
     {
@@ -76,7 +76,7 @@ class Panier
             return collect();
         }
 
-        $plats = Plats::whereIn('id', array_keys($items))->get()->keyBy('id');
+        $plats = Plat::whereIn('id', array_keys($items))->get()->keyBy('id');
 
         return collect($items)
             ->filter(fn ($qty, $id) => $plats->has($id))

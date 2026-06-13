@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plats;
+use App\Models\Plat;
 use App\Support\Panier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +24,7 @@ class PanierController extends Controller
     /**
      * Ajoute un plat au panier.
      */
-    public function store(Request $request, Plats $plat): RedirectResponse
+    public function store(Request $request, Plat $plat): RedirectResponse
     {
         if ($plat->estEpuise()) {
             return back()->with('error', __('« :nom » est actuellement épuisé.', ['nom' => $plat->nom]));
@@ -39,7 +39,7 @@ class PanierController extends Controller
     /**
      * Met à jour la quantité d'un plat dans le panier.
      */
-    public function update(Request $request, Plats $plat): RedirectResponse
+    public function update(Request $request, Plat $plat): RedirectResponse
     {
         $quantite = (int) $request->input('quantite', 1);
         Panier::set($plat->id, $quantite);
@@ -50,7 +50,7 @@ class PanierController extends Controller
     /**
      * Retire un plat du panier.
      */
-    public function destroy(Plats $plat): RedirectResponse
+    public function destroy(Plat $plat): RedirectResponse
     {
         Panier::remove($plat->id);
 

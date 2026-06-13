@@ -14,6 +14,6 @@ class Categorie extends Model
 
     public function plats(): HasMany
     {
-        return $this->hasMany(Plats::class, 'categorie_id');
+        return $this->hasMany(Plat::class, 'categorie_id');
     }
 }

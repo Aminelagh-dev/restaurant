@@ -30,6 +30,6 @@ class CommandePlat extends Model
 
     public function plat(): BelongsTo
     {
-        return $this->belongsTo(Plats::class, 'plat_id');
+        return $this->belongsTo(Plat::class, 'plat_id');
     }
 }

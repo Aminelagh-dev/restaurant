@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Categorie;
 use App\Models\Client;
 use App\Models\Commande;
-use App\Models\Plats;
+use App\Models\Plat;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -19,8 +19,8 @@ class DashboardController extends Controller
     public function index(): View
     {
         $stats = [
-            'plats' => Plats::count(),
-            'plats_epuises' => Plats::where('disponible', false)->orWhere('stock', '<=', 0)->count(),
+            'plats' => Plat::count(),
+            'plats_epuises' => Plat::where('disponible', false)->orWhere('stock', '<=', 0)->count(),
             'categories' => Categorie::count(),
             'clients' => Client::count(),
             'commandes' => Commande::count(),

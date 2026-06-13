@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePlatRequest;
 use App\Http\Requests\UpdatePlatRequest;
 use App\Models\Categorie;
-use App\Models\Plats;
+use App\Models\Plat;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class PlatsController extends Controller
      */
     public function index(Request $request): View
     {
-        $plats = Plats::query()
+        $plats = Plat::query()
             ->with('categorie')
             ->when($request->filled('q'), function ($query) use ($request) {
                 $query->where('nom', 'like', '%'.$request->query('q').'%');
@@ -41,7 +41,7 @@ class PlatsController extends Controller
     public function create(): View
     {
         return view('admin.plats.create', [
-            'plat' => new Plats(['disponible' => true, 'stock' => 0]),
+            'plat' => new Plat(['disponible' => true, 'stock' => 0]),
             'categories' => Categorie::orderBy('nom')->get(),
         ]);
     }
@@ -52,13 +52,13 @@ class PlatsController extends Controller
         $data['image'] = $this->resolveImage($request);
         $data['disponible'] = $request->boolean('disponible');
 
-        Plats::create($data);
+        Plat::create($data);
 
         return redirect()->route('admin.plats.index')
             ->with('success', __('Plat ajouté à la carte.'));
     }
 
-    public function edit(Plats $plat): View
+    public function edit(Plat $plat): View
     {
         return view('admin.plats.edit', [
             'plat' => $plat,
@@ -66,7 +66,7 @@ class PlatsController extends Controller
         ]);
     }
 
-    public function update(UpdatePlatRequest $request, Plats $plat): RedirectResponse
+    public function update(UpdatePlatRequest $request, Plat $plat): RedirectResponse
     {
         $data = $request->validated();
         $data['image'] = $this->resolveImage($request, $plat->image);
@@ -78,7 +78,7 @@ class PlatsController extends Controller
             ->with('success', __('Plat mis à jour.'));
     }
 
-    public function destroy(Plats $plat): RedirectResponse
+    public function destroy(Plat $plat): RedirectResponse
     {
         // Préserve l'historique : un plat déjà commandé ne peut être supprimé
         // (sinon ses lignes de commande seraient effacées). On invite à le
