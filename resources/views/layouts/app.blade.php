@@ -67,6 +67,12 @@
                             <x-icon name="dashboard" size="16" /> {{ __('Espace gérant') }}
                         </a>
                     @endif
+                    <form method="POST" action="{{ route('admin.logout') }}" class="topnav-auth">
+                        @csrf
+                        <button type="submit" class="btn btn-ghost btn-sm">
+                            <x-icon name="logout" size="16" /> {{ __('Déconnexion') }}
+                        </button>
+                    </form>
                 @else
                     <a href="{{ route('admin.login') }}" class="btn btn-primary btn-sm topnav-auth">
                         <x-icon name="user" size="16" /> {{ __('Connexion') }}
