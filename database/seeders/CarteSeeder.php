@@ -70,25 +70,31 @@ class CarteSeeder extends Seeder
         ];
 
         foreach ($carte as $nomCategorie => $infos) {
-            $categorie = Categorie::create([
-                'nom' => $nomCategorie,
-                'description' => $infos['description'],
-            ]);
+            // updateOrCreate : ré-exécuter le seeder met à jour la carte au lieu
+            // de la dupliquer (la catégorie est identifiée par son nom).
+            $categorie = Categorie::updateOrCreate(
+                ['nom' => $nomCategorie],
+                ['description' => $infos['description']],
+            );
 
             foreach ($infos['plats'] as $p) {
                 [$slug, $nom, $description, $ingredients, $temps, $prix, $stock] = $p;
                 $disponible = $p[7] ?? true;
 
-                $categorie->plats()->create([
-                    'nom' => $nom,
-                    'description' => $description,
-                    'ingredients' => $ingredients,
-                    'temps_preparation' => $temps,
-                    'prix' => $prix,
-                    'stock' => $stock,
-                    'disponible' => $disponible && $stock > 0,
-                    'image' => $this->imagePour($slug, $infos['couleur'], $nom),
-                ]);
+                // Le plat est identifié par son nom au sein de sa catégorie :
+                // pas de doublon si le seeder est relancé.
+                $categorie->plats()->updateOrCreate(
+                    ['nom' => $nom],
+                    [
+                        'description' => $description,
+                        'ingredients' => $ingredients,
+                        'temps_preparation' => $temps,
+                        'prix' => $prix,
+                        'stock' => $stock,
+                        'disponible' => $disponible && $stock > 0,
+                        'image' => $this->imagePour($slug, $infos['couleur'], $nom),
+                    ],
+                );
             }
         }
     }

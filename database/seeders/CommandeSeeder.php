@@ -20,6 +20,12 @@ class CommandeSeeder extends Seeder
             return;
         }
 
+        // Idempotence : on ne re-génère pas de commandes de démonstration si la
+        // base en contient déjà (évite d'empiler des commandes à chaque seed).
+        if (Commande::query()->exists()) {
+            return;
+        }
+
         $clients = [
             ['Bennani', 'Yasmine', '0612345678', 'yasmine.bennani@example.ma'],
             ['El Idrissi', 'Mehdi', '0623456789', 'mehdi.idrissi@example.ma'],
@@ -38,12 +44,11 @@ class CommandeSeeder extends Seeder
         ];
 
         foreach ($clients as $i => [$nom, $prenom, $tel, $email]) {
-            $client = Client::create([
-                'nom' => $nom,
-                'prenom' => $prenom,
-                'telephone' => $tel,
-                'email' => $email,
-            ]);
+            // Le client est identifié par son téléphone (comme au passage de commande).
+            $client = Client::firstOrCreate(
+                ['telephone' => $tel],
+                ['nom' => $nom, 'prenom' => $prenom, 'email' => $email],
+            );
 
             $nbCommandes = rand(1, 2);
 
