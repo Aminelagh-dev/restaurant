@@ -41,7 +41,7 @@
                             @csrf
                             @method('PATCH')
                             <div class="qty" data-qty data-min="1" data-max="99" data-autosubmit>
-                                <button type="button" data-step="-1" aria-label="Moins"><x-icon name="x" size="14" stroke="2" style="transform: rotate(45deg);" /></button>
+                                <button type="button" data-step="-1" aria-label="Moins"><x-icon name="minus" size="14" stroke="2.2" /></button>
                                 <input type="hidden" name="quantite" value="{{ $ligne['quantite'] }}">
                                 <span class="val">{{ $ligne['quantite'] }}</span>
                                 <button type="button" data-step="1" aria-label="Plus"><x-icon name="plus" size="14" stroke="2.2" /></button>

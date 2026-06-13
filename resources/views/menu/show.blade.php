@@ -73,7 +73,7 @@
                           style="display: flex; gap: 12px; align-items: center;">
                         @csrf
                         <div class="qty" data-qty data-min="1" data-max="{{ max(1, $plat->stock) }}">
-                            <button type="button" data-step="-1" aria-label="Moins"><x-icon name="x" size="14" stroke="2" style="transform: rotate(45deg);" /></button>
+                            <button type="button" data-step="-1" aria-label="Moins"><x-icon name="minus" size="14" stroke="2.2" /></button>
                             <input type="hidden" name="quantite" value="1">
                             <span class="val">1</span>
                             <button type="button" data-step="1" aria-label="Plus"><x-icon name="plus" size="14" stroke="2.2" /></button>
