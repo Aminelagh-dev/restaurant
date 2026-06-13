@@ -2,8 +2,8 @@
 
 > **Online Ordering Platform — Traditional Moroccan Cuisine**
 > A Laravel 12 web application that lets customers discover and order Moroccan
-> dishes (Harira, Tagines, Couscous, Pastilla, Rfissa…), with a full back-office
-> for the restaurant manager.
+> dishes (Harira, Tagines, Couscous, Pastilla, Rfissa…), with a full, **secured**
+> back-office for the restaurant manager, **available in French, English and Arabic**.
 
 | | |
 |---|---|
@@ -11,8 +11,18 @@
 | **Type** | Food-ordering web application (front-office + back-office) |
 | **Stack version** | Laravel 12 · PHP 8.2+ · Vite 7 · Tailwind CSS 4 |
 | **Database** | SQLite (default) or MySQL |
-| **Interface language** | French |
+| **Interface languages** | French (default) · English · العربية (RTL) |
+| **Authentication** | Protected back-office (manager login + `admin` role) |
 | **Document date** | June 13, 2026 |
+
+> **Recent updates integrated in this version**
+> 1. **Internationalization (i18n)** — multilingual interface FR / EN / AR with
+>    right-to-left (RTL) support for Arabic.
+> 2. **Back-office security** — manager authentication + `admin` role check + login
+>    screen (the previous open `/admin` access is fixed).
+> 3. **Front-office navigation** — a **Sign in** button for visitors, **Manager area**
+>    + **Sign out** buttons for a logged-in manager.
+> 4. **Idempotent seeders** — no more duplicate menu items when re-running the seeder.
 
 ---
 
@@ -27,8 +37,10 @@
    - 2.5 [Front-office (customer area)](#25-front-office-customer-area)
    - 2.6 [Back-office (manager area)](#26-back-office-manager-area)
    - 2.7 [Key business rules](#27-key-business-rules)
-   - 2.8 [Security](#28-security)
-   - 2.9 [Interface and design](#29-interface-and-design)
+   - 2.8 [Authentication and access control](#28-authentication-and-access-control)
+   - 2.9 [Internationalization (FR / EN / AR)](#29-internationalization-fr--en--ar)
+   - 2.10 [Security](#210-security)
+   - 2.11 [Interface and design](#211-interface-and-design)
 3. [Installation and operation](#3-installation-and-operation)
 4. [Technical report](#4-technical-report)
    - 4.1 [Work delivered](#41-work-delivered)
@@ -52,17 +64,21 @@ The site is made up of two areas:
   preparation time, price), fills a cart, places an order with a delivery address,
   and then tracks its progress.
 
-- **Manager area (back-office)** — an administration dashboard where the manager
-  handles the menu (dishes, prices, out-of-stock), categories, customers and
-  orders, and reviews activity indicators (revenue, best-selling dishes, order
-  status breakdown).
+- **Manager area (back-office)** — an administration dashboard, **protected by
+  authentication**, where the manager handles the menu (dishes, prices,
+  out-of-stock), categories, customers and orders, and reviews activity indicators
+  (revenue, best-selling dishes, order status breakdown).
+
+The entire interface is **multilingual**: French (default), English and Arabic (with
+right-to-left layout).
 
 ### Product goals
 
 - Deliver a **smooth customer experience**: no mandatory sign-up, a 4-step journey
   (menu → cart → order → tracking).
-- Give the manager a **self-service tool** to run the whole menu and orders in real
-  time.
+- Give the manager a **self-service, secured tool** to run the whole menu and orders
+  in real time.
+- Make the service **accessible to an international audience** (FR / EN / AR).
 - Highlight **Moroccan culinary heritage** through polished visuals and warm colors
   (terracotta, saffron, ochre).
 
@@ -82,7 +98,9 @@ The site is made up of two areas:
 | Backend | **PHP 8.2+**, **Laravel 12**, Eloquent ORM | Business logic, routing, persistence |
 | Frontend | **Blade**, **Vite 7**, **Tailwind CSS 4** | View rendering, asset bundling |
 | Database | **SQLite** (default) / MySQL | Data storage |
-| Sessions / Cart | `database` driver | Cart and access grants stored in session |
+| Sessions / Cart | `database` driver | Cart, language and access grants in session |
+| Authentication | Laravel `web` guard (Eloquent, `App\Models\User`) | Manager login + `admin` role |
+| Internationalization | Laravel JSON translations (`__()`), locale middleware | FR / EN / AR + RTL |
 | Tests | **PHPUnit 11** | Automated tests |
 | Dev tooling | Laravel Pail (logs), Pint (formatting), Sail | Developer comfort |
 
@@ -100,25 +118,36 @@ app/
       CheckoutController.php    # Order placement (customer)
       SuiviController.php       # Order tracking (customer)
       Admin/
+        AuthController.php      # Manager login / logout
         DashboardController.php # Dashboard (manager)
         PlatsController.php     # Menu CRUD
         CategorieController.php # Category CRUD
         ClientController.php    # Customer CRUD
         CommandeController.php  # Order management + statuses
+    Middleware/
+      SetLocale.php             # Applies the language (fr/en/ar) on each request
+      EnsureUserIsAdmin.php     # Restricts /admin to the "admin" role
     Requests/                   # Form Requests (validation)
-      CheckoutRequest.php
-      StorePlatRequest.php
-      UpdatePlatRequest.php
   Models/                       # Plats, Categorie, Client, Commande, CommandePlat, User
   Support/
     Panier.php                  # Cart service (session)
+bootstrap/app.php               # Middleware (web + admin alias) + auth redirects
+config/locales.php              # Supported languages + default language
 database/
   migrations/                   # Business schema
-  seeders/                      # Demo data (menu + orders)
+  seeders/                      # Idempotent demo data (menu + orders)
+lang/
+  en.json · ar.json             # Translations (key = French string)
+  fr/validation.php · ar/validation.php  # Localized validation messages
 resources/
-  views/                        # Blade views (front + admin + components)
+  views/
+    layouts/                    # app (front) · admin · auth (login)
+    components/                 # icon, lang-switcher
+    admin/auth/login.blade.php  # Manager login screen
+    …                           # Other front + admin views
   css/app.css · js/app.js       # Assets bundled by Vite
 routes/web.php                  # All HTTP routes
+scripts/i18n_extract.php        # Extracts __() translation keys
 public/images/plats/            # Dish photos
 ```
 
@@ -182,16 +211,16 @@ Six business tables structure the application.
 | sous_total | decimal(10,2) | |
 | unique(commande_id, plat_id) | | A dish appears once per order |
 
-#### `users` (manager accounts)
+#### `users` (manager accounts — used for authentication)
 | Column | Type | Notes |
 |--------|------|-------|
 | id | bigint (PK) | |
 | nom | string | |
 | prenom | string (nullable) | |
-| email | string (unique) | |
+| email | string (unique) | Login identifier |
 | telephone | string (nullable) | |
 | password | string (hashed) | |
-| role | enum | `client` · `admin` |
+| role | enum | `client` · `admin` — only `admin` may access the back-office |
 
 #### Eloquent relationships
 
@@ -219,8 +248,17 @@ Six business tables structure the application.
 | GET | `/suivi` | `suivi.index` | Order search form |
 | POST | `/suivi` | `suivi.search` | Search (throttle 10/min) |
 | GET | `/suivi/{commande}` | `suivi.show` | Detailed status (access-controlled) |
+| GET | `/locale/{locale}` | `locale.switch` | Switch language (fr/en/ar), stored in session |
 
-#### Back-office (`/admin` prefix)
+#### Manager authentication
+
+| Method | URL | Name | Action |
+|--------|-----|------|--------|
+| GET | `/admin/login` | `admin.login` | Login screen (visitors only) |
+| POST | `/admin/login` | `admin.login.attempt` | Authentication (**throttle 6/min**) |
+| POST | `/admin/logout` | `admin.logout` | Logout → back to home |
+
+#### Back-office (`/admin` prefix, protected by `auth` + `admin`)
 
 | Method | URL | Name | Action |
 |--------|-----|------|--------|
@@ -231,6 +269,9 @@ Six business tables structure the application.
 | GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Order detail |
 | PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change status |
 | GET/POST/… | `/admin/clients` | `admin.clients.*` | Customer CRUD (except `show`) |
+
+> The whole `/admin` group (except `login`) is now protected: an unauthenticated
+> visitor is redirected to `/admin/login`.
 
 ### 2.5 Front-office (customer area)
 
@@ -263,7 +304,16 @@ Six business tables structure the application.
    in the session (after checkout or a successful search) can be viewed; any other
    attempt returns a **403** error.
 
+**Navigation and manager access.** The top navigation bar adapts its actions to the
+authentication state:
+- **Visitor** → a **Sign in** button (to the manager login screen); the language
+  switcher, theme toggle and cart remain visible.
+- **Logged-in manager** → **Manager area** (to the dashboard) and **Sign out**
+  buttons. The public "Manager area" link has been removed from the visitor nav.
+
 ### 2.6 Back-office (manager area)
+
+> Access requires signing in with an `admin`-role account (see §2.8).
 
 - **Dashboard** (`DashboardController`) — Key indicators:
   - Number of dishes, out-of-stock dishes, categories, customers, orders.
@@ -288,6 +338,9 @@ Six business tables structure the application.
   (15/page), filterable by status, order detail, and **real-time status change**
   (In preparation → Out for delivery → Delivered).
 
+The top bar and sidebar display the **logged-in manager** (name + initials) and a
+**sign-out** button.
+
 ### 2.7 Key business rules
 
 - **Frozen prices**: at order time, `prix_unitaire` is copied into the order line. A
@@ -301,16 +354,76 @@ Six business tables structure the application.
 - **Protected status**: the `statut` column (order) and `role` (user) are
   deliberately excluded from `$fillable` and assigned explicitly (anti
   mass-assignment).
+- **Idempotent seeders**: the demo menu and customers are created via `updateOrCreate`
+  / `firstOrCreate`; re-running `db:seed` creates **no duplicates**.
 
-### 2.8 Security
+### 2.8 Authentication and access control
+
+The back-office is protected by Laravel's standard authentication, reinforced by a
+role check.
+
+- **Protected routes** — The entire `/admin/*` group (except login) is wrapped in the
+  `auth` **and** `admin` middleware.
+- **Role middleware** — `EnsureUserIsAdmin` (aliased `admin`) returns a **403** if the
+  user is not a manager (`isAdmin()`), as defense-in-depth behind `auth`.
+- **Controller** — `Admin\AuthController` handles showing the form, signing in and
+  signing out.
+- **Manager login screen** (`admin/login`) — an email + password form with a
+  "remember me" option, a theme toggle and a language switcher; fully translated
+  (FR / EN / AR).
+- **Sign-in** — `Auth::attempt`, then **session regeneration**; the **role is
+  verified**: a `client`-role account is immediately signed out with the message
+  "This account does not have access to the manager area."
+- **Rate limiting** — `throttle:6,1` on the login attempt (brute-force protection).
+- **Sign-out** — invalidates the session, regenerates the CSRF token and redirects to
+  the public home page. Available from the admin bar **and** from the front-office
+  navigation (when a manager is logged in).
+- **Redirects** (configured in `bootstrap/app.php`) — an unauthenticated visitor on
+  `/admin` is sent to `/admin/login`; a logged-in manager who opens `/admin/login` is
+  sent to the dashboard.
+
+**Demo manager account**: `admin@riad.test` / `password`. Accounts are provisioned via
+the seeder/database (no public sign-up; `role` is guarded against mass-assignment).
+
+### 2.9 Internationalization (FR / EN / AR)
+
+The interface is available in **French** (default and source language), **English**
+and **Arabic** (with right-to-left layout).
+
+- **French-key approach** — UI strings are wrapped in `__('…')` with the **French
+  text as the key**. French therefore needs no file (natural fallback); only
+  `lang/en.json` and `lang/ar.json` (≈ 250 keys each) are maintained.
+- **Configuration** — `config/locales.php` lists the supported languages (code,
+  native label, writing direction `ltr`/`rtl`) and sets `fr` as default.
+- **`SetLocale` middleware** — applies the chosen language (stored in the session) on
+  every request and **syncs Carbon** for localized dates.
+- **Language switching** — `GET /locale/{locale}` route + a `<x-lang-switcher>`
+  component (an **FR · EN · AR** selector) present in the front-office navigation, the
+  admin bar and the login screen.
+- **RTL support** — `dir="rtl"` on `<html>` for Arabic, with dedicated CSS adjustments
+  (badges, availability toggle, order-tracking timeline, table alignment, breadcrumb
+  chevrons).
+- **Localized validation** — validation messages translated in `lang/fr/validation.php`
+  and `lang/ar/validation.php` (English comes from the framework).
+- **Tooling** — `scripts/i18n_extract.php` extracts all `__()` keys from the code to
+  keep the translation files in sync.
+
+> **Content data** (dish and category names/descriptions) remains stored in its
+> original language (French); only the **interface** is translated.
+
+### 2.10 Security
 
 Measures actually present in the code:
 
+- **Back-office authentication** — `/admin` routes behind `auth` + an `admin` role
+  middleware (403 otherwise); see §2.8.
+- **Login rate limiting** — `throttle:6,1` on `admin.login.attempt`.
+- **Session regeneration** on sign-in (session-fixation prevention).
 - **CSRF protection** on every form (`@csrf`).
 - **Anti mass-assignment**: `statut` and `role` outside `$fillable`, assigned
   explicitly.
 - **Systematic validation** via Form Requests and `validate()` (types, lengths,
-  foreign-key existence, email format, image URL…).
+  foreign-key existence, email format, image URL…), with localized messages.
 - **Secure image upload**: the extension is derived from the **real MIME type**
   verified server-side (never from the client-supplied filename); only
   jpeg/png/webp/gif are accepted (≤ 4 MB).
@@ -319,20 +432,20 @@ Measures actually present in the code:
 - **Rate limiting** (`throttle:10,1`) on order search to curb enumeration.
 - **Password hashing** (`password` cast to `hashed`).
 
-> ⚠️ An important security point regarding the back-office is detailed in the
-> [technical report, §4.4](#44-points-of-attention-and-known-limitations).
-
-### 2.9 Interface and design
+### 2.11 Interface and design
 
 - **Visual identity**: "Riad Saveurs" brand, warm Moroccan color palette
   (terracotta, saffron, ochre), Manrope typography.
+- **Multilingual**: an **FR · EN · AR** language switcher in the navigation, automatic
+  RTL layout for Arabic.
 - **Light / dark theme**: toggle persisted in `localStorage` and applied before
   render to avoid flashing.
 - **Icon component**: `<x-icon>` — an in-house inline SVG library (plus, minus,
-  cart, clock…).
-- **Responsive**: top navigation with a dynamic cart counter.
-- **Separate layouts**: `layouts/app.blade.php` (front) and
-  `layouts/admin.blade.php` (back-office with a sidebar).
+  cart, clock, logout…).
+- **Responsive**: top navigation with a dynamic cart counter and adaptive
+  authentication buttons.
+- **Separate layouts**: `layouts/app.blade.php` (front), `layouts/admin.blade.php`
+  (back-office with a sidebar) and `layouts/auth.blade.php` (login screen).
 
 ---
 
@@ -361,8 +474,8 @@ php artisan key:generate
 #    Create the database/database.sqlite file, then:
 php artisan migrate
 
-# 5. (Optional) Demo data
-php artisan db:seed
+# 5. (Optional) Demo data — idempotent seeders
+php artisan db:seed         # can be re-run without creating duplicates
 ```
 
 ### Running in development
@@ -374,8 +487,11 @@ php artisan serve # http://127.0.0.1:8000
 npm run dev       # Vite (HMR) on http://localhost:5173
 ```
 
-### Demo account (after `db:seed`)
-- **Manager**: `admin@riad.test` / `password`
+### Access and demo account (after `db:seed`)
+- **Customer site**: `http://127.0.0.1:8000/`
+- **Manager login**: `http://127.0.0.1:8000/admin/login`
+- **Manager credentials**: `admin@riad.test` / `password`
+- **Language**: switch via the **FR · EN · AR** selector in the navigation.
 - Data: a full Moroccan menu (Harira, Tagines, Couscous, Pastilla, Desserts,
   Teas/Juices), 5 fictitious customers and orders spread over 7 days.
 
@@ -392,7 +508,7 @@ composer test     # PHPUnit
 ### 4.1 Work delivered
 
 The delivered application covers the **entire functional scope** described in the
-specification:
+specification, plus the back-office security and interface translation:
 
 | Area | Status |
 |------|--------|
@@ -406,6 +522,10 @@ specification:
 | Customer CRUD | ✅ Done |
 | Order management + status change | ✅ Done |
 | Dashboard (popular dishes, daily revenue) | ✅ Done |
+| **Manager authentication + `admin` role check** | ✅ Done |
+| **Login screen + Sign in / Sign out buttons** | ✅ Done |
+| **Internationalization FR / EN / AR (+ RTL)** | ✅ Done |
+| **Idempotent seeders (no duplicate menu items)** | ✅ Done |
 | Demo data (menu + orders) | ✅ Done |
 | Light/dark theme, responsive design | ✅ Done |
 
@@ -422,6 +542,16 @@ specification:
 - **Transaction at checkout** — Creating the order, its lines and decrementing stock
   happen **atomically**: no partial order on error.
 
+- **`web` guard authentication + dedicated role middleware** — We rely on Laravel's
+  standard guard, and a separate `admin` middleware enforces the role check. The role
+  is **also verified at sign-in** (a client is rejected), for defense-in-depth.
+
+- **French-key i18n** — French text doubles as the translation key: minimal diff on
+  the views, and French stays the natural fallback with no dedicated file.
+
+- **Idempotent seeders** (`updateOrCreate` / `firstOrCreate`) — Re-running `db:seed`
+  updates existing data instead of duplicating it.
+
 - **`firstOrCreate` of the customer by phone** — Avoids duplicate customers while
   keeping a sign-up-free journey.
 
@@ -433,62 +563,60 @@ specification:
 
 ### 4.3 Security measures implemented
 
-Summary of the protections in place (detailed in §2.8):
+Summary of the protections in place (detailed in §2.8 and §2.10):
 
-1. CSRF protection on every form.
-2. Mass-assignment protection of sensitive columns (`statut`, `role`).
-3. Strict input validation (Form Requests + rules).
-4. Image upload validated by real MIME type, with size and format restrictions.
-5. Order-tracking access control via session authorization (403 otherwise).
-6. Rate limiting on order search.
-7. Automatic password hashing.
+1. **Back-office authentication** (`auth`) + **`admin` role check** (403 otherwise).
+2. **Role verification at sign-in** (a client account is rejected).
+3. **Login rate limiting** (`throttle:6,1`) + **session regeneration**.
+4. CSRF protection on every form.
+5. Mass-assignment protection of sensitive columns (`statut`, `role`).
+6. Strict input validation (Form Requests + rules), with localized messages.
+7. Image upload validated by real MIME type, with size and format restrictions.
+8. Order-tracking access control via session authorization (403 otherwise).
+9. Rate limiting on order search.
+10. Automatic password hashing.
 
 ### 4.4 Points of attention and known limitations
-
-- **⚠️ The `/admin` back-office is not protected by authentication.** The `User`
-  model and roles (`client`/`admin`) exist and a manager account is created at seed
-  time, but **no `auth` middleware or role check is applied** to the `/admin` routes
-  in `routes/web.php`. As it stands, any visitor can reach the dashboard and all CRUD
-  operations. **This is the #1 priority to fix before any production deployment**
-  (see §4.5).
-
-- **`Plat` model naming inconsistency** — The file `app/Models/Plats.php` initially
-  contained a `Plat` class (PSR-4 non-compliant, skipped by the autoloader). The
-  class the application uses is `Plats`. This should be harmonized to avoid
-  confusion.
-
-- **npm vulnerabilities** — `npm audit` reports vulnerabilities in the development
-  toolchain (Vite). No production impact (build dependencies), but worth monitoring.
 
 - **No online payment** — The order is recorded without collecting payment (assumed
   cash on delivery).
 
-- **No authenticated customer area** — Tracking relies on number + phone, with no
-  account history.
+- **No authenticated customer area** — Only the manager has an account; on the
+  customer side, tracking relies on number + phone, with no account history.
+
+- **No online manager sign-up** — Manager accounts are provisioned via the seeder or
+  the database (`role` guarded against mass-assignment); there is not yet a staff
+  account-management screen.
+
+- **npm vulnerabilities** — `npm audit` reports vulnerabilities in the development
+  toolchain (Vite). No production impact (build dependencies), but worth monitoring.
 
 ### 4.5 Recommended future improvements
 
 | Priority | Improvement |
 |----------|-------------|
-| 🔴 High | **Protect `/admin`** with `auth` middleware + `admin` role check, and add a manager login screen. |
-| 🟠 Medium | Harmonize the `Plats`/`Plat` model naming (PSR-4). |
+| 🟠 Medium | Staff account-management screen (create/deactivate managers). |
 | 🟠 Medium | Customer notifications (email/SMS) on status changes. |
 | 🟡 Low | Online payment. |
 | 🟡 Low | Authenticated customer area with order history. |
+| 🟡 Low | Translate menu content (dishes/categories) at the database level. |
 | 🟡 Low | A more extensive automated test suite (front + back). |
 | 🟡 Low | Update the npm dependencies flagged by `npm audit`. |
 
 ### 4.6 Summary
 
-Riad Saveurs is a **functionally complete** and well-structured Laravel 12
+Riad Saveurs is a **functionally complete, secured and multilingual** Laravel 12
 application, covering the full customer journey (menu → cart → order → tracking) and
 manager operations (menu, categories, customers, orders, dashboard). The code applies
 good practices (transactions, frozen prices, mass-assignment protection, validation,
-secure upload, defensive deletion).
+secure upload, defensive deletion, idempotent seeders).
 
-The **only blocker for production** is the **lack of authentication on the
-back-office**: the `/admin` routes must be protected before any deployment. Once that
-point is addressed, the application is ready for operation.
+The **blocker previously identified — the lack of authentication on the back-office —
+is now resolved**: the `/admin` routes are protected by `auth` and an `admin` role
+check, with a dedicated login screen. The interface is also available in **French,
+English and Arabic (RTL)**. The application is ready for operation; the remaining
+enhancements (online payment, customer area, staff account management) are functional
+conveniences rather than production prerequisites.
 
 ---
 

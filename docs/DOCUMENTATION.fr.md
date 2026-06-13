@@ -3,7 +3,7 @@
 > **Plateforme de commande en ligne — Cuisine marocaine traditionnelle**
 > Application web Laravel 12 permettant aux clients de découvrir et commander des plats
 > marocains (Harira, Tagines, Couscous, Pastilla, Rfissa…), avec un back-office complet
-> pour le gérant du restaurant.
+> et **sécurisé** pour le gérant du restaurant, **disponible en français, anglais et arabe**.
 
 | | |
 |---|---|
@@ -11,8 +11,18 @@
 | **Type** | Application web de commande de restauration (front-office + back-office) |
 | **Version de la stack** | Laravel 12 · PHP 8.2+ · Vite 7 · Tailwind CSS 4 |
 | **Base de données** | SQLite (par défaut) ou MySQL |
-| **Langue de l'interface** | Français |
+| **Langues de l'interface** | Français (défaut) · English · العربية (RTL) |
+| **Authentification** | Back-office protégé (connexion gérant + rôle `admin`) |
 | **Date du document** | 13 juin 2026 |
+
+> **Mises à jour récentes intégrées dans cette version**
+> 1. **Internationalisation (i18n)** — interface multilingue FR / EN / AR avec support
+>    de l'écriture de droite à gauche (RTL) pour l'arabe.
+> 2. **Sécurisation du back-office** — authentification gérant + contrôle de rôle
+>    `admin` + écran de connexion (l'ancien accès `/admin` libre est corrigé).
+> 3. **Navigation front-office** — bouton **Connexion** pour les visiteurs, **Espace
+>    gérant** + **Déconnexion** pour un gérant connecté.
+> 4. **Seeders idempotents** — plus aucun doublon de la carte lors d'un re-`seed`.
 
 ---
 
@@ -27,8 +37,10 @@
    - 2.5 [Front-office (espace client)](#25-front-office-espace-client)
    - 2.6 [Back-office (espace gérant)](#26-back-office-espace-gérant)
    - 2.7 [Règles métier importantes](#27-règles-métier-importantes)
-   - 2.8 [Sécurité](#28-sécurité)
-   - 2.9 [Interface et design](#29-interface-et-design)
+   - 2.8 [Authentification et contrôle d'accès](#28-authentification-et-contrôle-daccès)
+   - 2.9 [Internationalisation (FR / EN / AR)](#29-internationalisation-fr--en--ar)
+   - 2.10 [Sécurité](#210-sécurité)
+   - 2.11 [Interface et design](#211-interface-et-design)
 3. [Installation et exploitation](#3-installation-et-exploitation)
 4. [Rapport technique](#4-rapport-technique)
    - 4.1 [Travail réalisé](#41-travail-réalisé)
@@ -53,17 +65,21 @@ Le site se compose de deux espaces :
   (ingrédients, temps de préparation, prix), remplit un panier, passe commande en
   renseignant une adresse de livraison, puis suit l'avancement de sa commande.
 
-- **L'espace gérant (back-office)** — un tableau de bord d'administration où le
-  gérant gère la carte (plats, prix, ruptures de stock), les catégories, les
-  clients et les commandes, et visualise des indicateurs d'activité (chiffre
-  d'affaires, plats les plus commandés, répartition des commandes par statut).
+- **L'espace gérant (back-office)** — un tableau de bord d'administration **protégé
+  par authentification** où le gérant gère la carte (plats, prix, ruptures de stock),
+  les catégories, les clients et les commandes, et visualise des indicateurs
+  d'activité (chiffre d'affaires, plats les plus commandés, répartition par statut).
+
+L'ensemble de l'interface est **multilingue** : français (par défaut), anglais et
+arabe (avec mise en page de droite à gauche).
 
 ### Objectifs du produit
 
 - Offrir une **expérience client fluide** : pas d'inscription obligatoire, parcours
   en 4 étapes (menu → panier → commande → suivi).
-- Donner au gérant un **outil de gestion autonome** de toute la carte et des
-  commandes, en temps réel.
+- Donner au gérant un **outil de gestion autonome et sécurisé** de toute la carte et
+  des commandes, en temps réel.
+- Rendre le service **accessible à un public international** (FR / EN / AR).
 - Mettre en avant le **patrimoine culinaire marocain** par des visuels soignés et
   des couleurs chaudes (terracotta, safran, ocre).
 
@@ -83,7 +99,9 @@ Le site se compose de deux espaces :
 | Backend | **PHP 8.2+**, **Laravel 12**, Eloquent ORM | Logique métier, routage, persistance |
 | Frontend | **Blade**, **Vite 7**, **Tailwind CSS 4** | Rendu des vues, compilation des assets |
 | Base de données | **SQLite** (défaut) / MySQL | Stockage des données |
-| Sessions / Panier | Driver `database` | Panier et autorisations stockés en session |
+| Sessions / Panier | Driver `database` | Panier, langue et autorisations en session |
+| Authentification | Garde `web` Laravel (Eloquent, `App\Models\User`) | Connexion gérant + rôle `admin` |
+| Internationalisation | Traductions JSON Laravel (`__()`), middleware de locale | FR / EN / AR + RTL |
 | Tests | **PHPUnit 11** | Tests automatisés |
 | Outils dev | Laravel Pail (logs), Pint (formatage), Sail | Confort de développement |
 
@@ -101,25 +119,36 @@ app/
       CheckoutController.php    # Passage de commande (client)
       SuiviController.php       # Suivi de commande (client)
       Admin/
+        AuthController.php      # Connexion / déconnexion gérant
         DashboardController.php # Tableau de bord (gérant)
         PlatsController.php     # CRUD carte
         CategorieController.php # CRUD catégories
         ClientController.php    # CRUD clients
         CommandeController.php  # Gestion des commandes + statuts
+    Middleware/
+      SetLocale.php             # Applique la langue (fr/en/ar) à chaque requête
+      EnsureUserIsAdmin.php     # Réserve /admin au rôle « admin »
     Requests/                   # Form Requests (validation)
-      CheckoutRequest.php
-      StorePlatRequest.php
-      UpdatePlatRequest.php
   Models/                       # Plats, Categorie, Client, Commande, CommandePlat, User
   Support/
     Panier.php                  # Service panier (session)
+bootstrap/app.php               # Middlewares (web + alias admin) + redirections auth
+config/locales.php              # Langues prises en charge + langue par défaut
 database/
   migrations/                   # Schéma métier
-  seeders/                      # Données de démonstration (carte + commandes)
+  seeders/                      # Données de démonstration idempotentes (carte + commandes)
+lang/
+  en.json · ar.json             # Traductions (clé = chaîne française)
+  fr/validation.php · ar/validation.php  # Messages de validation localisés
 resources/
-  views/                        # Vues Blade (front + admin + composants)
+  views/
+    layouts/                    # app (front) · admin · auth (connexion)
+    components/                 # icon, lang-switcher
+    admin/auth/login.blade.php  # Écran de connexion gérant
+    …                           # Autres vues front + admin
   css/app.css · js/app.js       # Assets compilés par Vite
 routes/web.php                  # Toutes les routes HTTP
+scripts/i18n_extract.php        # Extraction des clés de traduction __()
 public/images/plats/            # Photos des plats
 ```
 
@@ -183,16 +212,16 @@ Six tables métier structurent l'application.
 | sous_total | decimal(10,2) | |
 | unique(commande_id, plat_id) | | Un plat n'apparaît qu'une fois par commande |
 
-#### `users` (comptes gérant)
+#### `users` (comptes gérant — utilisés pour l'authentification)
 | Colonne | Type | Notes |
 |---------|------|-------|
 | id | bigint (PK) | |
 | nom | string | |
 | prenom | string (nullable) | |
-| email | string (unique) | |
+| email | string (unique) | Identifiant de connexion |
 | telephone | string (nullable) | |
 | password | string (hashed) | |
-| role | enum | `client` · `admin` |
+| role | enum | `client` · `admin` — seul `admin` accède au back-office |
 
 #### Relations Eloquent
 
@@ -220,8 +249,17 @@ Six tables métier structurent l'application.
 | GET | `/suivi` | `suivi.index` | Formulaire de recherche de commande |
 | POST | `/suivi` | `suivi.search` | Recherche (throttle 10/min) |
 | GET | `/suivi/{commande}` | `suivi.show` | Statut détaillé (accès contrôlé) |
+| GET | `/locale/{locale}` | `locale.switch` | Change la langue (fr/en/ar), mémorisée en session |
 
-#### Back-office (préfixe `/admin`)
+#### Authentification gérant
+
+| Méthode | URL | Nom | Action |
+|---------|-----|-----|--------|
+| GET | `/admin/login` | `admin.login` | Écran de connexion (visiteurs uniquement) |
+| POST | `/admin/login` | `admin.login.attempt` | Authentification (**throttle 6/min**) |
+| POST | `/admin/logout` | `admin.logout` | Déconnexion → retour à l'accueil |
+
+#### Back-office (préfixe `/admin`, protégé par `auth` + `admin`)
 
 | Méthode | URL | Nom | Action |
 |---------|-----|-----|--------|
@@ -232,6 +270,9 @@ Six tables métier structurent l'application.
 | GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Détail d'une commande |
 | PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change le statut |
 | GET/POST/… | `/admin/clients` | `admin.clients.*` | CRUD clients (sauf `show`) |
+
+> Tout le groupe `/admin` (hors `login`) est désormais protégé : un visiteur non
+> authentifié est redirigé vers `/admin/login`.
 
 ### 2.5 Front-office (espace client)
 
@@ -264,7 +305,17 @@ Six tables métier structurent l'application.
    commandes « autorisées » dans la session (après paiement ou recherche réussie)
    sont consultables ; toute autre tentative renvoie une erreur **403**.
 
+**Navigation et accès gérant.** La barre de navigation supérieure adapte ses actions
+à l'état de connexion :
+- **Visiteur** → bouton **Connexion** (vers l'écran de connexion gérant) ; le sélecteur
+  de langue, le bascule de thème et le panier restent visibles.
+- **Gérant connecté** → boutons **Espace gérant** (vers le tableau de bord) et
+  **Déconnexion**. Le lien public « Espace gérant » a été retiré de la navigation des
+  visiteurs.
+
 ### 2.6 Back-office (espace gérant)
+
+> L'accès nécessite une connexion avec un compte de rôle `admin` (voir §2.8).
 
 - **Tableau de bord** (`DashboardController`) — Indicateurs clés :
   - Nombre de plats, plats épuisés, catégories, clients, commandes.
@@ -290,6 +341,9 @@ Six tables métier structurent l'application.
   (15/page), filtrable par statut, détail d'une commande, et **changement de statut**
   en temps réel (En préparation → En cours de livraison → Livrée).
 
+La barre supérieure et la barre latérale affichent le **gérant connecté** (nom +
+initiales) et un bouton de **déconnexion**.
+
 ### 2.7 Règles métier importantes
 
 - **Prix figés** : à la commande, le `prix_unitaire` est copié dans la ligne de
@@ -304,16 +358,80 @@ Six tables métier structurent l'application.
 - **Statut protégé** : la colonne `statut` (commande) et `role` (utilisateur) sont
   volontairement exclues du `$fillable` et affectées explicitement (anti
   mass-assignment).
+- **Seeders idempotents** : la carte et les clients de démonstration sont créés via
+  `updateOrCreate` / `firstOrCreate` ; relancer `db:seed` ne crée **aucun doublon**.
 
-### 2.8 Sécurité
+### 2.8 Authentification et contrôle d'accès
+
+Le back-office est protégé par l'authentification standard de Laravel, renforcée par
+un contrôle de rôle.
+
+- **Routes protégées** — Tout le groupe `/admin/*` (hors connexion) est encapsulé dans
+  les middlewares `auth` **et** `admin`.
+- **Middleware de rôle** — `EnsureUserIsAdmin` (alias `admin`) renvoie une erreur
+  **403** si l'utilisateur n'est pas un gérant (`isAdmin()`), en défense en profondeur
+  derrière `auth`.
+- **Contrôleur** — `Admin\AuthController` gère l'affichage du formulaire, la connexion
+  et la déconnexion.
+- **Écran de connexion gérant** (`admin/login`) — formulaire e-mail + mot de passe +
+  « se souvenir de moi », avec bascule de thème et sélecteur de langue ; entièrement
+  traduit (FR / EN / AR).
+- **Connexion** — `Auth::attempt`, puis **régénération de session** ; le **rôle est
+  vérifié** : un compte de rôle `client` est immédiatement déconnecté avec le message
+  « Ce compte n'a pas accès à l'espace gérant ».
+- **Limitation de débit** — `throttle:6,1` sur la tentative de connexion (anti
+  force-brute).
+- **Déconnexion** — ferme la session, régénère le jeton CSRF et redirige vers
+  l'accueil public. Disponible depuis la barre admin **et** depuis la navigation
+  front-office (lorsqu'un gérant est connecté).
+- **Redirections** (configurées dans `bootstrap/app.php`) — un visiteur non authentifié
+  sur `/admin` est renvoyé vers `/admin/login` ; un gérant déjà connecté qui ouvre
+  `/admin/login` est renvoyé vers le tableau de bord.
+
+**Compte gérant de démonstration** : `admin@riad.test` / `password`. Les comptes sont
+provisionnés via le seeder/la base (pas d'inscription publique ; `role` protégé du
+mass-assignment).
+
+### 2.9 Internationalisation (FR / EN / AR)
+
+L'interface est disponible en **français** (langue par défaut et source), **anglais**
+et **arabe** (avec mise en page de droite à gauche).
+
+- **Approche par clés françaises** — Les chaînes de l'interface sont enveloppées dans
+  `__('…')` avec le texte **français comme clé**. Le français ne nécessite donc aucun
+  fichier (repli naturel) ; seuls `lang/en.json` et `lang/ar.json` (≈ 250 clés chacun)
+  sont maintenus.
+- **Configuration** — `config/locales.php` liste les langues prises en charge (code,
+  libellé natif, sens d'écriture `ltr`/`rtl`) et définit `fr` par défaut.
+- **Middleware `SetLocale`** — applique à chaque requête la langue choisie (mémorisée
+  en session) et **synchronise Carbon** pour des dates localisées.
+- **Changement de langue** — route `GET /locale/{locale}` + composant
+  `<x-lang-switcher>` (sélecteur **FR · EN · AR**) présent dans la navigation
+  front-office, la barre admin et l'écran de connexion.
+- **Support RTL** — `dir="rtl"` sur `<html>` en arabe, avec ajustements CSS dédiés
+  (badges, interrupteur de disponibilité, frise de suivi, alignements de tableaux,
+  chevrons du fil d'ariane).
+- **Validation localisée** — messages de validation traduits dans `lang/fr/validation.php`
+  et `lang/ar/validation.php` (l'anglais provient du framework).
+- **Outillage** — `scripts/i18n_extract.php` extrait toutes les clés `__()` du code
+  pour garder les fichiers de traduction synchronisés.
+
+> Les **données de contenu** (noms et descriptions des plats, catégories) restent
+> stockées dans leur langue d'origine (français) ; seule l'**interface** est traduite.
+
+### 2.10 Sécurité
 
 Mesures effectivement présentes dans le code :
 
+- **Authentification du back-office** — routes `/admin` derrière `auth` + middleware de
+  rôle `admin` (403 sinon) ; voir §2.8.
+- **Limitation de débit à la connexion** — `throttle:6,1` sur `admin.login.attempt`.
+- **Régénération de session** à la connexion (prévention de la fixation de session).
 - **Protection CSRF** sur tous les formulaires (`@csrf`).
 - **Anti mass-assignment** : `statut` et `role` hors `$fillable`, affectés
   explicitement.
 - **Validation systématique** via Form Requests et `validate()` (types, longueurs,
-  existence des clés étrangères, format email, URL d'image…).
+  existence des clés étrangères, format email, URL d'image…), avec messages localisés.
 - **Upload d'image sécurisé** : l'extension est déduite du **type MIME réel** vérifié
   côté serveur (jamais du nom de fichier fourni par le client) ; seuls
   jpeg/png/webp/gif sont acceptés (≤ 4 Mo).
@@ -323,20 +441,20 @@ Mesures effectivement présentes dans le code :
   l'énumération.
 - **Hachage des mots de passe** (`password` casté en `hashed`).
 
-> ⚠️ Un point de sécurité important concernant le back-office est détaillé dans le
-> [rapport technique, §4.4](#44-points-dattention-et-limites-connues).
-
-### 2.9 Interface et design
+### 2.11 Interface et design
 
 - **Identité visuelle** : marque « Riad Saveurs », palette de couleurs chaudes
   marocaines (terracotta, safran, ocre), typographie Manrope.
+- **Multilingue** : sélecteur de langue **FR · EN · AR** dans la navigation, mise en
+  page RTL automatique pour l'arabe.
 - **Thème clair / sombre** : bascule avec mémorisation dans `localStorage` et
   application avant rendu pour éviter le flash.
 - **Composant d'icônes** : `<x-icon>` — bibliothèque SVG inline maison (plus, minus,
-  cart, clock…).
-- **Responsive** : navigation supérieure avec compteur de panier dynamique.
-- **Layouts séparés** : `layouts/app.blade.php` (front) et `layouts/admin.blade.php`
-  (back-office avec barre latérale).
+  cart, clock, logout…).
+- **Responsive** : navigation supérieure avec compteur de panier dynamique et boutons
+  d'authentification adaptatifs.
+- **Layouts séparés** : `layouts/app.blade.php` (front), `layouts/admin.blade.php`
+  (back-office avec barre latérale) et `layouts/auth.blade.php` (écran de connexion).
 
 ---
 
@@ -365,8 +483,8 @@ php artisan key:generate
 #    Créer le fichier database/database.sqlite puis :
 php artisan migrate
 
-# 5. (Optionnel) Données de démonstration
-php artisan db:seed
+# 5. (Optionnel) Données de démonstration — seeders idempotents
+php artisan db:seed         # peut être relancé sans créer de doublon
 ```
 
 ### Lancement en développement
@@ -378,8 +496,11 @@ php artisan serve # http://127.0.0.1:8000
 npm run dev       # Vite (HMR) sur http://localhost:5173
 ```
 
-### Compte de démonstration (après `db:seed`)
-- **Gérant** : `admin@riad.test` / `password`
+### Accès et compte de démonstration (après `db:seed`)
+- **Site client** : `http://127.0.0.1:8000/`
+- **Connexion gérant** : `http://127.0.0.1:8000/admin/login`
+- **Identifiants gérant** : `admin@riad.test` / `password`
+- **Langue** : changer via le sélecteur **FR · EN · AR** dans la navigation.
 - Données : carte marocaine complète (Harira, Tagines, Couscous, Pastilla,
   Desserts, Thés/Jus), 5 clients fictifs et des commandes réparties sur 7 jours.
 
@@ -396,7 +517,8 @@ composer test     # PHPUnit
 ### 4.1 Travail réalisé
 
 L'application livrée couvre **l'intégralité du périmètre fonctionnel** décrit dans le
-cahier des charges :
+cahier des charges, complété par la sécurisation du back-office et la traduction de
+l'interface :
 
 | Domaine | Statut |
 |---------|--------|
@@ -410,6 +532,10 @@ cahier des charges :
 | CRUD clients | ✅ Réalisé |
 | Gestion des commandes + changement de statut | ✅ Réalisé |
 | Tableau de bord (plats populaires, CA quotidien) | ✅ Réalisé |
+| **Authentification gérant + contrôle de rôle `admin`** | ✅ Réalisé |
+| **Écran de connexion + boutons Connexion/Déconnexion** | ✅ Réalisé |
+| **Internationalisation FR / EN / AR (+ RTL)** | ✅ Réalisé |
+| **Seeders idempotents (aucun doublon de la carte)** | ✅ Réalisé |
 | Données de démonstration (carte + commandes) | ✅ Réalisé |
 | Thème clair/sombre, design responsive | ✅ Réalisé |
 
@@ -427,6 +553,17 @@ cahier des charges :
   décrémentation du stock se font de façon **atomique** : aucune commande partielle
   en cas d'erreur.
 
+- **Authentification garde `web` + middleware de rôle dédié** — On s'appuie sur la
+  garde Laravel standard, et un middleware `admin` séparé applique le contrôle de rôle.
+  Le rôle est **aussi vérifié au moment de la connexion** (un client est refusé), pour
+  une défense en profondeur.
+
+- **i18n par clés françaises** — Le texte français sert de clé de traduction : diff
+  minimal sur les vues, et le français reste le repli naturel sans fichier dédié.
+
+- **Seeders idempotents** (`updateOrCreate` / `firstOrCreate`) — Relancer `db:seed`
+  met à jour les données existantes au lieu de les dupliquer.
+
 - **`firstOrCreate` du client par téléphone** — Évite la prolifération de doublons
   clients tout en gardant un parcours sans inscription.
 
@@ -438,64 +575,63 @@ cahier des charges :
 
 ### 4.3 Mesures de sécurité mises en place
 
-Récapitulatif des protections implémentées (détaillées au §2.8) :
+Récapitulatif des protections implémentées (détaillées aux §2.8 et §2.10) :
 
-1. Protection CSRF sur tous les formulaires.
-2. Protection contre le mass-assignment des colonnes sensibles (`statut`, `role`).
-3. Validation stricte des entrées (Form Requests + règles).
-4. Upload d'image validé par type MIME réel, taille et format restreints.
-5. Contrôle d'accès au suivi de commande via autorisation en session (403 sinon).
-6. Limitation de débit sur la recherche de commande.
-7. Hachage automatique des mots de passe.
+1. **Authentification du back-office** (`auth`) + **contrôle de rôle `admin`** (403 sinon).
+2. **Vérification du rôle à la connexion** (un compte client est refusé).
+3. **Limitation de débit à la connexion** (`throttle:6,1`) + **régénération de session**.
+4. Protection CSRF sur tous les formulaires.
+5. Protection contre le mass-assignment des colonnes sensibles (`statut`, `role`).
+6. Validation stricte des entrées (Form Requests + règles), messages localisés.
+7. Upload d'image validé par type MIME réel, taille et format restreints.
+8. Contrôle d'accès au suivi de commande via autorisation en session (403 sinon).
+9. Limitation de débit sur la recherche de commande.
+10. Hachage automatique des mots de passe.
 
 ### 4.4 Points d'attention et limites connues
 
-- **⚠️ Le back-office `/admin` n'est pas protégé par authentification.** Le modèle
-  `User` et les rôles (`client`/`admin`) existent et un compte gérant est créé au
-  seed, mais **aucun middleware `auth` ni contrôle de rôle n'est appliqué** aux routes
-  `/admin` dans `routes/web.php`. En l'état, n'importe quel visiteur peut accéder au
-  tableau de bord et aux opérations CRUD. **C'est la priorité n°1 à corriger avant
-  toute mise en production** (voir §4.5).
+- **Pas de gestion de paiement en ligne** — La commande est enregistrée sans
+  encaissement (paiement supposé à la livraison).
 
-- **Incohérence de nommage du modèle `Plat`** — Le fichier `app/Models/Plats.php`
-  contenait initialement une classe `Plat` (non conforme PSR-4, ignorée par
-  l'autoloader). La classe utilisée par l'application est `Plats`. À harmoniser pour
-  éviter toute confusion.
+- **Pas d'espace client authentifié** — Seul le gérant dispose d'un compte ; côté
+  client, le suivi repose sur numéro + téléphone, sans historique de compte.
+
+- **Pas d'inscription gérant en ligne** — Les comptes gérant sont provisionnés via le
+  seeder ou la base (`role` protégé du mass-assignment) ; il n'existe pas encore
+  d'écran d'administration des comptes du personnel.
 
 - **Vulnérabilités npm** — `npm audit` signale des vulnérabilités dans la chaîne
   d'outils de développement (Vite). Sans impact sur la production (dépendances de
   build), mais à surveiller.
 
-- **Pas de gestion de paiement en ligne** — La commande est enregistrée sans
-  encaissement (paiement supposé à la livraison).
-
-- **Pas d'espace client authentifié** — Le suivi repose sur numéro + téléphone, sans
-  historique de compte.
-
 ### 4.5 Améliorations futures recommandées
 
 | Priorité | Amélioration |
 |----------|--------------|
-| 🔴 Haute | **Protéger `/admin`** par middleware `auth` + contrôle de rôle `admin`, et ajouter un écran de connexion gérant. |
-| 🟠 Moyenne | Harmoniser le nommage du modèle `Plats`/`Plat` (PSR-4). |
+| 🟠 Moyenne | Écran d'administration des comptes du personnel (création/désactivation de gérants). |
 | 🟠 Moyenne | Notifications client (email/SMS) aux changements de statut. |
 | 🟡 Basse | Paiement en ligne. |
 | 🟡 Basse | Espace client authentifié avec historique de commandes. |
+| 🟡 Basse | Traduction du contenu de la carte (plats/catégories) au niveau base de données. |
 | 🟡 Basse | Suite de tests automatisés (front + back) plus étoffée. |
 | 🟡 Basse | Mise à jour des dépendances npm signalées par `npm audit`. |
 
 ### 4.6 Synthèse
 
-Riad Saveurs est une application Laravel 12 **fonctionnellement complète** et bien
-structurée, couvrant l'ensemble du parcours client (menu → panier → commande → suivi)
-et de la gestion gérant (carte, catégories, clients, commandes, tableau de bord). Le
-code applique de bonnes pratiques (transactions, prix figés, protection
-mass-assignment, validation, upload sécurisé, suppression défensive).
+Riad Saveurs est une application Laravel 12 **fonctionnellement complète, sécurisée et
+multilingue**, couvrant l'ensemble du parcours client (menu → panier → commande →
+suivi) et de la gestion gérant (carte, catégories, clients, commandes, tableau de
+bord). Le code applique de bonnes pratiques (transactions, prix figés, protection
+mass-assignment, validation, upload sécurisé, suppression défensive, seeders
+idempotents).
 
-Le **seul point bloquant pour une mise en production** est l'**absence
-d'authentification sur le back-office** : il convient de protéger les routes `/admin`
-avant tout déploiement. Une fois ce point traité, l'application est prête à être
-exploitée.
+Le **point bloquant identifié précédemment — l'absence d'authentification sur le
+back-office — est désormais résolu** : les routes `/admin` sont protégées par `auth`
+et un contrôle de rôle `admin`, avec un écran de connexion dédié. L'interface est par
+ailleurs disponible en **français, anglais et arabe (RTL)**. L'application est prête à
+être exploitée ; les évolutions restantes (paiement en ligne, espace client, gestion
+des comptes du personnel) relèvent du confort fonctionnel et non d'un prérequis de
+mise en production.
 
 ---
 
