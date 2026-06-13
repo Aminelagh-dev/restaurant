@@ -3,23 +3,31 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        // Compte gérant (back-office). 'role' n'étant pas mass-assignable,
+        // on l'affecte explicitement via forceFill.
+        User::updateOrCreate(
+            ['email' => 'admin@riad.test'],
+            [
+                'nom' => 'Gérant',
+                'prenom' => 'Riad',
+                'telephone' => '0600000000',
+                'password' => Hash::make('password'),
+            ]
+        )->forceFill(['role' => User::ROLE_ADMIN])->save();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            CarteSeeder::class,
+            CommandeSeeder::class,
         ]);
     }
 }

@@ -16,7 +16,7 @@ Application web Laravel 12 permettant aux clients de découvrir et commander des
 ```
 app/
   Http/Controllers/   # PlatsController, CommandeController, CategorieController, etc.
-  Models/             # Plats, Commande, Client, Categorie, Thematique, Statut, etc.
+  Models/             # Plat, Commande, Client, Categorie, Thematique, Statut, etc.
 database/migrations/  # Schéma métier (plats, commandes, catégories, thématiques…)
 resources/views/      # Vues Blade (front-office + back-office)
 routes/web.php        # Routes HTTP
@@ -54,7 +54,8 @@ routes/web.php        # Routes HTTP
 
 ## Conventions de code
 
-- Conserver les noms français existants (`Plats`, `Ingrediant`, `Commande`, `Thematique`)
+- Conserver les noms français existants (`Plat`, `Ingrediant`, `Commande`, `Thematique`)
+  — le modèle des plats est singulier (`App\Models\Plat`, table `plats`), comme les autres modèles
 - Ne pas renommer les tables/colonnes sans migration explicite
 - Controllers en ressource Laravel (`index`, `create`, `store`, `show`, `edit`, `update`, `destroy`)
 - Validation via Form Requests quand la logique dépasse 2–3 règles
