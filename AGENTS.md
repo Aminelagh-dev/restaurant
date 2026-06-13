@@ -26,7 +26,7 @@ routes/web.php        # Routes HTTP
 
 ### Entités principales
 
-- **Plats** — libellé, stock (disponible/épuisé), image
+- **Plats** — libellé, disponibilité (disponible/épuisé), image
 - **Categories** — type (Entrées, Plats principaux, Desserts, Thés)
 - **Thematiques** — région (Fès, Marrakech, etc.)
 - **Ingrediants** — produits associés aux plats
@@ -47,7 +47,7 @@ routes/web.php        # Routes HTTP
 
 ### Back-Office (gérant)
 
-1. CRUD carte (plats, prix, rupture de stock)
+1. CRUD carte (plats, prix, disponibilité)
 2. Gestion catégories et thématiques régionales
 3. Gestion commandes (liste chronologique, changement de statut)
 4. Tableau de bord (plats populaires, CA quotidien)

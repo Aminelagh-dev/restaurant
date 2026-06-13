@@ -41,7 +41,7 @@ class PlatsController extends Controller
     public function create(): View
     {
         return view('admin.plats.create', [
-            'plat' => new Plat(['disponible' => true, 'stock' => 0]),
+            'plat' => new Plat(['disponible' => true]),
             'categories' => Categorie::orderBy('nom')->get(),
         ]);
     }

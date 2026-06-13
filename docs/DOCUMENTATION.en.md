@@ -175,7 +175,6 @@ Six business tables structure the application.
 | temps_preparation | integer | Minutes |
 | prix | decimal(10,2) | In MAD (DH) |
 | image | string (nullable) | Absolute URL **or** local path |
-| stock | integer | Default 0 |
 | disponible | boolean | Default `true` |
 | timestamps | | |
 
@@ -299,8 +298,6 @@ Six business tables structure the application.
    - The cart is re-checked (non-empty, dishes still available).
    - A `Client` is created or found by **phone number** (`firstOrCreate`).
    - The order and its lines are saved inside a **transaction**.
-   - Each dish's **stock is decremented**; a dish whose stock reaches 0 is
-     automatically marked unavailable.
    - The customer is redirected to their order tracking page.
 
 5. **Order tracking** — The customer searches their order by **number** +
@@ -354,9 +351,9 @@ The top bar and sidebar display the **logged-in manager** (name + initials) and 
 
 - **Frozen prices**: at order time, `prix_unitaire` is copied into the order line. A
   later change to a dish's price does not alter past orders.
-- **Stock management**: automatic decrement at order time; flagged "unavailable" as
-  soon as stock reaches 0. A dish is considered **out of stock** if it is marked
-  unavailable **or** its stock is ≤ 0 (`Plat::estEpuise()`).
+- **Availability**: a dish is considered **out of stock** when it is marked
+  unavailable (`Plat::estEpuise()`). The manager toggles availability from the dish
+  form.
 - **One customer per phone**: `firstOrCreate` avoids duplicate customers.
 - **History integrity**: a dish already ordered, or a non-empty category, cannot be
   deleted.
@@ -549,8 +546,8 @@ specification, plus the back-office security and interface translation:
   not a plain pivot — Allows the **unit price to be frozen** at order time,
   guaranteeing a faithful history even as the menu evolves.
 
-- **Transaction at checkout** — Creating the order, its lines and decrementing stock
-  happen **atomically**: no partial order on error.
+- **Transaction at checkout** — Creating the order and its lines happens
+  **atomically**: no partial order on error.
 
 - **`web` guard authentication + dedicated role middleware** — We rely on Laravel's
   standard guard, and a separate `admin` middleware enforces the role check. The role

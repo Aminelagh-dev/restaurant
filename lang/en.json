@@ -1,7 +1,6 @@
 {
     ":count catégories": ":count categories",
     ":count en préparation": ":count in preparation",
-    ":count en stock": ":count in stock",
     ":count min de préparation": ":count min prep time",
     ":count résultat(s) pour « :q »": ":count result(s) for « :q »",
     ":count vendus": ":count sold",
@@ -88,7 +87,6 @@
     "Effacer": "Clear",
     "Email": "Email",
     "Email (optionnel)": "Email (optional)",
-    "En stock": "In stock",
     "En préparation": "In preparation",
     "En cours de livraison": "Out for delivery",
     "Enregistrer": "Save",
@@ -188,7 +186,6 @@
     "Statut": "Status",
     "Statut actuel :": "Current status:",
     "Statut mis à jour : :statut.": "Status updated: :statut.",
-    "Stock": "Stock",
     "Suivre ma commande": "Track my order",
     "Suivre une autre commande": "Track another order",
     "Supprimer": "Delete",

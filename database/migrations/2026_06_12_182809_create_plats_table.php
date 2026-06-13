@@ -26,8 +26,6 @@ return new class extends Migration
 
             $table->string('image')->nullable();
 
-            $table->integer('stock')->default(0);
-
             $table->boolean('disponible')->default(true);
 
             $table->timestamps();

@@ -1,7 +1,6 @@
 {
     ":count catégories": ":count فئات",
     ":count en préparation": ":count قيد التحضير",
-    ":count en stock": ":count في المخزون",
     ":count min de préparation": ":count دقيقة للتحضير",
     ":count résultat(s) pour « :q »": ":count نتيجة لـ « :q »",
     ":count vendus": ":count مبيع",
@@ -88,7 +87,6 @@
     "Effacer": "مسح",
     "Email": "البريد الإلكتروني",
     "Email (optionnel)": "البريد الإلكتروني (اختياري)",
-    "En stock": "في المخزون",
     "En préparation": "قيد التحضير",
     "En cours de livraison": "قيد التوصيل",
     "Enregistrer": "حفظ",
@@ -188,7 +186,6 @@
     "Statut": "الحالة",
     "Statut actuel :": "الحالة الحالية:",
     "Statut mis à jour : :statut.": "تم تحديث الحالة: :statut.",
-    "Stock": "المخزون",
     "Suivre ma commande": "تتبّع طلبي",
     "Suivre une autre commande": "تتبّع طلب آخر",
     "Supprimer": "حذف",

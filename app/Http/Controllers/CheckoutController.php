@@ -80,12 +80,6 @@ class CheckoutController extends Controller
                     'prix_unitaire' => $plat->prix,
                     'sous_total' => $ligne['sous_total'],
                 ]);
-
-                // Décrémente le stock et marque en rupture si épuisé.
-                $plat->decrement('stock', $ligne['quantite']);
-                if ($plat->fresh()->stock <= 0) {
-                    $plat->update(['disponible' => false]);
-                }
             }
 
             return $commande;

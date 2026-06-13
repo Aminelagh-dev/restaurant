@@ -23,7 +23,6 @@ class StorePlatRequest extends FormRequest
             'ingredients' => ['required', 'string', 'max:2000'],
             'temps_preparation' => ['required', 'integer', 'min:1', 'max:600'],
             'prix' => ['required', 'numeric', 'min:0', 'max:99999'],
-            'stock' => ['required', 'integer', 'min:0'],
             'disponible' => ['nullable', 'boolean'],
             'image' => ['nullable', 'url', 'starts_with:http://,https://', 'max:2048'],
             'image_file' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp,gif', 'max:4096'],

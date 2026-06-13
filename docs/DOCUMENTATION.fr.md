@@ -176,7 +176,6 @@ Six tables métier structurent l'application.
 | temps_preparation | integer | Minutes |
 | prix | decimal(10,2) | En DH |
 | image | string (nullable) | URL absolue **ou** chemin local |
-| stock | integer | Défaut 0 |
 | disponible | boolean | Défaut `true` |
 | timestamps | | |
 
@@ -300,8 +299,6 @@ Six tables métier structurent l'application.
    - Le panier est revérifié (non vide, plats toujours disponibles).
    - Un `Client` est créé ou retrouvé par son **numéro de téléphone** (`firstOrCreate`).
    - La commande et ses lignes sont enregistrées dans une **transaction**.
-   - Le **stock de chaque plat est décrémenté** ; un plat dont le stock tombe à 0
-     est automatiquement marqué indisponible.
    - Le client est redirigé vers le suivi de sa commande.
 
 5. **Suivi de commande** — Le client recherche sa commande via le **numéro** +
@@ -359,9 +356,9 @@ initiales) et un bouton de **déconnexion**.
 - **Prix figés** : à la commande, le `prix_unitaire` est copié dans la ligne de
   commande. Une modification ultérieure du prix d'un plat n'altère pas les commandes
   passées.
-- **Gestion du stock** : décrément automatique à la commande ; passage en
-  « indisponible » dès que le stock atteint 0. Un plat est considéré **épuisé** s'il
-  est marqué indisponible **ou** si son stock est ≤ 0 (`Plat::estEpuise()`).
+- **Disponibilité** : un plat est considéré **épuisé** lorsqu'il est marqué
+  indisponible (`Plat::estEpuise()`). Le gérant bascule la disponibilité depuis la
+  fiche du plat.
 - **Client unique par téléphone** : le `firstOrCreate` évite les doublons clients.
 - **Intégrité de l'historique** : impossible de supprimer un plat déjà commandé ou
   une catégorie non vide.
@@ -560,9 +557,8 @@ l'interface :
   et non simple pivot — Permet de **figer le prix unitaire** au moment de la commande,
   garantissant un historique fidèle même si la carte évolue.
 
-- **Transaction au checkout** — La création de la commande, de ses lignes et la
-  décrémentation du stock se font de façon **atomique** : aucune commande partielle
-  en cas d'erreur.
+- **Transaction au checkout** — La création de la commande et de ses lignes se fait
+  de façon **atomique** : aucune commande partielle en cas d'erreur.
 
 - **Authentification garde `web` + middleware de rôle dédié** — On s'appuie sur la
   garde Laravel standard, et un middleware `admin` séparé applique le contrôle de rôle.
