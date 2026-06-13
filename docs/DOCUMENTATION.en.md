@@ -124,6 +124,7 @@ app/
         CategorieController.php # Category CRUD
         ClientController.php    # Customer CRUD
         CommandeController.php  # Order management + statuses
+        StaffController.php     # Manager accounts (create / activate-deactivate)
     Middleware/
       SetLocale.php             # Applies the language (fr/en/ar) on each request
       EnsureUserIsAdmin.php     # Restricts /admin to the "admin" role
@@ -221,6 +222,7 @@ Six business tables structure the application.
 | telephone | string (nullable) | |
 | password | string (hashed) | |
 | role | enum | `client` · `admin` — only `admin` may access the back-office |
+| actif | boolean | Default `true`; a deactivated manager cannot sign in |
 
 #### Eloquent relationships
 
@@ -269,6 +271,8 @@ Six business tables structure the application.
 | GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Order detail |
 | PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change status |
 | GET/POST/… | `/admin/clients` | `admin.clients.*` | Customer CRUD (except `show`) |
+| GET/POST/… | `/admin/equipe` | `admin.equipe.*` | Staff (manager) accounts — index/create/edit |
+| PATCH | `/admin/equipe/{user}/statut` | `admin.equipe.statut` | Activate / deactivate a manager |
 
 > The whole `/admin` group (except `login`) is now protected: an unauthenticated
 > visitor is redirected to `/admin/login`.
@@ -337,6 +341,11 @@ authentication state:
 - **Order management** (`CommandeController`) — Paginated chronological list
   (15/page), filterable by status, order detail, and **real-time status change**
   (In preparation → Out for delivery → Delivered).
+
+- **Staff / team management** (`StaffController`, *System → Team*) — Create and edit
+  manager accounts, and **activate / deactivate** them. A deactivated manager can no
+  longer sign in. Guards prevent deactivating your own account or the last active
+  manager. New accounts are created with the `admin` role; passwords are hashed.
 
 The top bar and sidebar display the **logged-in manager** (name + initials) and a
 **sign-out** button.
@@ -525,6 +534,7 @@ specification, plus the back-office security and interface translation:
 | **Manager authentication + `admin` role check** | ✅ Done |
 | **Login screen + Sign in / Sign out buttons** | ✅ Done |
 | **Internationalization FR / EN / AR (+ RTL)** | ✅ Done |
+| **Staff management (create/edit, activate/deactivate managers)** | ✅ Done |
 | **Idempotent seeders (no duplicate menu items)** | ✅ Done |
 | Demo data (menu + orders) | ✅ Done |
 | Light/dark theme, responsive design | ✅ Done |
@@ -584,9 +594,9 @@ Summary of the protections in place (detailed in §2.8 and §2.10):
 - **No authenticated customer area** — Only the manager has an account; on the
   customer side, tracking relies on number + phone, with no account history.
 
-- **No online manager sign-up** — Manager accounts are provisioned via the seeder or
-  the database (`role` guarded against mass-assignment); there is not yet a staff
-  account-management screen.
+- **No public manager sign-up** — There is no open registration: new manager accounts
+  are created from within the back-office (*System → Team*) by an existing manager
+  (`role` is guarded against mass-assignment).
 
 - **npm vulnerabilities** — `npm audit` reports vulnerabilities in the development
   toolchain (Vite). No production impact (build dependencies), but worth monitoring.
@@ -595,7 +605,6 @@ Summary of the protections in place (detailed in §2.8 and §2.10):
 
 | Priority | Improvement |
 |----------|-------------|
-| 🟠 Medium | Staff account-management screen (create/deactivate managers). |
 | 🟠 Medium | Customer notifications (email/SMS) on status changes. |
 | 🟡 Low | Online payment. |
 | 🟡 Low | Authenticated customer area with order history. |

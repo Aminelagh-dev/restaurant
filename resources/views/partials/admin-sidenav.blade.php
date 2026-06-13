@@ -53,6 +53,15 @@
         </div>
 
         <div class="nav-group">
+            <div class="nav-group-label">{{ __('Système') }}</div>
+            <a href="{{ route('admin.equipe.index') }}"
+               class="nav-item {{ request()->routeIs('admin.equipe.*') ? 'is-active' : '' }}" title="{{ __('Équipe') }}">
+                <span class="nav-ico"><x-icon name="user" size="19" /></span>
+                <span class="nav-label">{{ __('Équipe') }}</span>
+            </a>
+        </div>
+
+        <div class="nav-group">
             <div class="nav-group-label">{{ __('Site') }}</div>
             <a href="{{ route('menu.index') }}" class="nav-item" title="{{ __('Voir le site') }}">
                 <span class="nav-ico"><x-icon name="leaf" size="19" /></span>

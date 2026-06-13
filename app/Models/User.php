@@ -50,11 +50,20 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'actif' => 'boolean',
         ];
     }
 
     public function isAdmin(): bool
     {
         return $this->role === self::ROLE_ADMIN;
+    }
+
+    /**
+     * Le gérant peut-il accéder au back-office : rôle admin ET compte actif.
+     */
+    public function peutGerer(): bool
+    {
+        return $this->isAdmin() && (bool) $this->actif;
     }
 }

@@ -125,6 +125,7 @@ app/
         CategorieController.php # CRUD catégories
         ClientController.php    # CRUD clients
         CommandeController.php  # Gestion des commandes + statuts
+        StaffController.php     # Comptes gérants (création / activation-désactivation)
     Middleware/
       SetLocale.php             # Applique la langue (fr/en/ar) à chaque requête
       EnsureUserIsAdmin.php     # Réserve /admin au rôle « admin »
@@ -222,6 +223,7 @@ Six tables métier structurent l'application.
 | telephone | string (nullable) | |
 | password | string (hashed) | |
 | role | enum | `client` · `admin` — seul `admin` accède au back-office |
+| actif | boolean | Défaut `true` ; un gérant désactivé ne peut plus se connecter |
 
 #### Relations Eloquent
 
@@ -270,6 +272,8 @@ Six tables métier structurent l'application.
 | GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Détail d'une commande |
 | PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change le statut |
 | GET/POST/… | `/admin/clients` | `admin.clients.*` | CRUD clients (sauf `show`) |
+| GET/POST/… | `/admin/equipe` | `admin.equipe.*` | Comptes gérants — liste/création/édition |
+| PATCH | `/admin/equipe/{user}/statut` | `admin.equipe.statut` | Activer / désactiver un gérant |
 
 > Tout le groupe `/admin` (hors `login`) est désormais protégé : un visiteur non
 > authentifié est redirigé vers `/admin/login`.
@@ -340,6 +344,12 @@ Six tables métier structurent l'application.
 - **Gestion des commandes** (`CommandeController`) — Liste chronologique paginée
   (15/page), filtrable par statut, détail d'une commande, et **changement de statut**
   en temps réel (En préparation → En cours de livraison → Livrée).
+
+- **Gestion de l'équipe** (`StaffController`, *Système → Équipe*) — Création et
+  modification des comptes gérants, et **activation / désactivation**. Un gérant
+  désactivé ne peut plus se connecter. Des garde-fous empêchent de désactiver son
+  propre compte ou le dernier gérant actif. Les nouveaux comptes sont créés avec le
+  rôle `admin` ; les mots de passe sont hachés.
 
 La barre supérieure et la barre latérale affichent le **gérant connecté** (nom +
 initiales) et un bouton de **déconnexion**.
@@ -535,6 +545,7 @@ l'interface :
 | **Authentification gérant + contrôle de rôle `admin`** | ✅ Réalisé |
 | **Écran de connexion + boutons Connexion/Déconnexion** | ✅ Réalisé |
 | **Internationalisation FR / EN / AR (+ RTL)** | ✅ Réalisé |
+| **Gestion de l'équipe (création/édition, activation/désactivation des gérants)** | ✅ Réalisé |
 | **Seeders idempotents (aucun doublon de la carte)** | ✅ Réalisé |
 | Données de démonstration (carte + commandes) | ✅ Réalisé |
 | Thème clair/sombre, design responsive | ✅ Réalisé |
@@ -596,9 +607,9 @@ Récapitulatif des protections implémentées (détaillées aux §2.8 et §2.10)
 - **Pas d'espace client authentifié** — Seul le gérant dispose d'un compte ; côté
   client, le suivi repose sur numéro + téléphone, sans historique de compte.
 
-- **Pas d'inscription gérant en ligne** — Les comptes gérant sont provisionnés via le
-  seeder ou la base (`role` protégé du mass-assignment) ; il n'existe pas encore
-  d'écran d'administration des comptes du personnel.
+- **Pas d'inscription gérant publique** — Aucune inscription ouverte : les nouveaux
+  comptes gérant sont créés depuis le back-office (*Système → Équipe*) par un gérant
+  existant (`role` protégé du mass-assignment).
 
 - **Vulnérabilités npm** — `npm audit` signale des vulnérabilités dans la chaîne
   d'outils de développement (Vite). Sans impact sur la production (dépendances de
@@ -608,7 +619,6 @@ Récapitulatif des protections implémentées (détaillées aux §2.8 et §2.10)
 
 | Priorité | Amélioration |
 |----------|--------------|
-| 🟠 Moyenne | Écran d'administration des comptes du personnel (création/désactivation de gérants). |
 | 🟠 Moyenne | Notifications client (email/SMS) aux changements de statut. |
 | 🟡 Basse | Paiement en ligne. |
 | 🟡 Basse | Espace client authentifié avec historique de commandes. |

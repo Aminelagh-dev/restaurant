@@ -52,6 +52,15 @@ class AuthController extends Controller
             ]);
         }
 
+        // Un compte désactivé ne peut pas se connecter.
+        if (! $request->user()->actif) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => __('Ce compte a été désactivé. Contactez un administrateur.'),
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('admin.dashboard'));

@@ -4,11 +4,12 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Réserve l'accès au back-office (/admin) aux comptes ayant le rôle « admin ».
- * Doit être appliqué après le middleware « auth » (l'utilisateur est authentifié).
+ * Réserve l'accès au back-office (/admin) aux gérants : rôle « admin » ET compte
+ * actif. Doit être appliqué après le middleware « auth » (utilisateur authentifié).
  */
 class EnsureUserIsAdmin
 {
@@ -16,8 +17,21 @@ class EnsureUserIsAdmin
     {
         $user = $request->user();
 
-        abort_unless($user && $user->isAdmin(), 403, __('Accès réservé au gérant.'));
+        // Gérant actif : accès autorisé.
+        if ($user && $user->peutGerer()) {
+            return $next($request);
+        }
 
-        return $next($request);
+        // Gérant désactivé en cours de session : on le déconnecte proprement.
+        if ($user && $user->isAdmin() && ! $user->actif) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('admin.login')
+                ->with('error', __('Votre compte a été désactivé.'));
+        }
+
+        abort(403, __('Accès réservé au gérant.'));
     }
 }

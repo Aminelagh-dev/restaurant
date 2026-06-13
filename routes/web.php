@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\CommandeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PlatsController;
+use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PanierController;
@@ -90,5 +91,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Gestion des clients
         Route::resource('clients', ClientController::class)->except(['show']);
+
+        // Gestion de l'équipe (comptes gérants) + activation/désactivation
+        Route::resource('equipe', StaffController::class)
+            ->parameters(['equipe' => 'user'])
+            ->only(['index', 'create', 'store', 'edit', 'update']);
+        Route::patch('equipe/{user}/statut', [StaffController::class, 'toggleStatut'])->name('equipe.statut');
     });
 });
