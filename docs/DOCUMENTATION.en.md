@@ -197,7 +197,16 @@ Six business tables structure the application.
 | adresse_livraison | string | Delivery address |
 | nom_recepteur | string | Delivery recipient |
 | telephone_recepteur | string | Used for order tracking |
-| statut | enum | `en_preparation` · `en_livraison` · `livree` |
+| statut | enum | `en_attente` (default) · `en_preparation` · `en_livraison` · `livree` |
+| timestamps | | |
+
+#### `details_statuses` (status history)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | bigint (PK) | |
+| commande_id | FK → commandes | `cascadeOnDelete` |
+| statut | enum | Status reached at the transition |
+| date_action | dateTime | Date/time of the status change |
 | timestamps | | |
 
 #### `commande_plat` (order lines)
@@ -228,8 +237,9 @@ Six business tables structure the application.
 - `Categorie` **hasMany** `Plat`
 - `Plat` **belongsTo** `Categorie`; **belongsToMany** `Commande` (via `commande_plat`)
 - `Client` **hasMany** `Commande`
-- `Commande` **belongsTo** `Client`; **hasMany** `CommandePlat` (lines); **belongsToMany** `Plat`
+- `Commande` **belongsTo** `Client`; **hasMany** `CommandePlat` (lines) and `DetailStatut` (status history); **belongsToMany** `Plat`
 - `CommandePlat` **belongsTo** `Commande` and `Plat`
+- `DetailStatut` **belongsTo** `Commande` (one row per status change)
 
 ### 2.4 Route map
 
@@ -298,12 +308,15 @@ Six business tables structure the application.
    - The cart is re-checked (non-empty, dishes still available).
    - A `Client` is created or found by **phone number** (`firstOrCreate`).
    - The order and its lines are saved inside a **transaction**.
+   - The order starts in the **"Pending"** status, logged in the status history
+     (`details_statuses`).
    - The customer is redirected to their order tracking page.
 
 5. **Order tracking** — The customer searches their order by **number** +
    **recipient phone**. Access to the detail is protected: only orders "authorized"
    in the session (after checkout or a successful search) can be viewed; any other
-   attempt returns a **403** error.
+   attempt returns a **403** error. The tracking timeline **timestamps each reached
+   step** from the status history.
 
 **Navigation and manager access.** The top navigation bar adapts its actions to the
 authentication state:
@@ -337,7 +350,8 @@ authentication state:
 
 - **Order management** (`CommandeController`) — Paginated chronological list
   (15/page), filterable by status, order detail, and **real-time status change**
-  (In preparation → Out for delivery → Delivered).
+  (Pending → In preparation → Out for delivery → Delivered). Each change is **logged**
+  in the status history (`details_statuses`).
 
 - **Staff / team management** (`StaffController`, *System → Team*) — Create and edit
   manager accounts, and **activate / deactivate** them. A deactivated manager can no

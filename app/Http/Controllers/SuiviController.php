@@ -64,11 +64,16 @@ class SuiviController extends Controller
             __('Accès non autorisé à cette commande. Recherchez-la via le numéro et le téléphone du destinataire.')
         );
 
-        $commande->load(['lignes.plat', 'client']);
+        $commande->load(['lignes.plat', 'client', 'historiqueStatuts']);
 
         return view('suivi.show', [
             'commande' => $commande,
             'statuts' => Commande::STATUTS,
+            // Date de la première occurrence de chaque statut atteint, pour
+            // horodater les étapes de la frise de suivi.
+            'datesStatuts' => $commande->historiqueStatuts
+                ->groupBy('statut')
+                ->map(fn ($entrees) => $entrees->first()->date_action),
         ]);
     }
 

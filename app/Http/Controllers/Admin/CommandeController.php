@@ -53,9 +53,11 @@ class CommandeController extends Controller
             'statut' => ['required', 'string', 'in:'.implode(',', array_keys(Commande::STATUTS))],
         ]);
 
-        // statut n'est pas mass-assignable : affectation explicite après validation.
-        $commande->statut = $data['statut'];
-        $commande->save();
+        // On ne journalise une transition que si le statut change réellement,
+        // pour éviter d'empiler des entrées d'historique identiques.
+        if ($commande->statut !== $data['statut']) {
+            $commande->changerStatut($data['statut']);
+        }
 
         return back()->with('success', __('Statut mis à jour : :statut.', ['statut' => __($commande->statutLabel())]));
     }
