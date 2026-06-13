@@ -41,7 +41,6 @@
                        class="topnav-link {{ request()->routeIs('menu.*') ? 'is-active' : '' }}">{{ __('Menu') }}</a>
                     <a href="{{ route('suivi.index') }}"
                        class="topnav-link {{ request()->routeIs('suivi.*') ? 'is-active' : '' }}">{{ __('Suivre ma commande') }}</a>
-                    <a href="{{ route('admin.dashboard') }}" class="topnav-link">{{ __('Espace gérant') }}</a>
                 </nav>
 
                 <div class="topnav-spacer"></div>
@@ -60,6 +59,19 @@
                         <span class="cart-count">{{ $nbPanier }}</span>
                     @endif
                 </a>
+
+                {{-- Espace gérant : visible uniquement pour un gérant connecté ; sinon bouton de connexion. --}}
+                @auth
+                    @if (auth()->user()->isAdmin())
+                        <a href="{{ route('admin.dashboard') }}" class="btn btn-ghost btn-sm topnav-auth">
+                            <x-icon name="dashboard" size="16" /> {{ __('Espace gérant') }}
+                        </a>
+                    @endif
+                @else
+                    <a href="{{ route('admin.login') }}" class="btn btn-primary btn-sm topnav-auth">
+                        <x-icon name="user" size="16" /> {{ __('Connexion') }}
+                    </a>
+                @endauth
             </div>
         </header>
 

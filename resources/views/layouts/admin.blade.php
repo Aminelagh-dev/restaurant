@@ -50,7 +50,14 @@
                         <span class="theme-sun"><x-icon name="sun" size="19" /></span>
                         <span class="theme-moon"><x-icon name="moon" size="19" /></span>
                     </button>
-                    <span class="avatar topbar-avatar">GR</span>
+                    <form method="POST" action="{{ route('admin.logout') }}">
+                        @csrf
+                        <button type="submit" class="icon-btn" aria-label="{{ __('Déconnexion') }}" title="{{ __('Déconnexion') }}">
+                            <x-icon name="logout" size="19" />
+                        </button>
+                    </form>
+                    @php($u = auth()->user())
+                    <span class="avatar topbar-avatar">{{ strtoupper(mb_substr($u->prenom ?: $u->nom, 0, 1).mb_substr($u->nom, 0, 1)) }}</span>
                 </div>
             </header>
 

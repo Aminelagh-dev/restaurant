@@ -61,11 +61,12 @@
         </div>
     </nav>
 
+    @php($u = auth()->user())
     <div class="sidenav-user">
-        <span class="avatar">GR</span>
+        <span class="avatar">{{ strtoupper(mb_substr($u->prenom ?: $u->nom, 0, 1).mb_substr($u->nom, 0, 1)) }}</span>
         <span class="user-meta">
-            <span class="user-name">{{ __('Gérant') }}</span>
-            <span class="user-role">admin</span>
+            <span class="user-name">{{ trim($u->prenom.' '.$u->nom) }}</span>
+            <span class="user-role">{{ __('Gérant') }}</span>
         </span>
         <button class="sidenav-pin" data-pin-sidenav type="button" aria-label="{{ __('Épingler le menu') }}" title="{{ __('Épingler le menu') }}">
             <x-icon name="pin" size="16" />

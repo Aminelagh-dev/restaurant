@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CategorieController;
 use App\Http\Controllers\Admin\ClientController;
 use App\Http\Controllers\Admin\CommandeController;
@@ -57,21 +58,37 @@ Route::get('/suivi/{commande}', [SuiviController::class, 'show'])->name('suivi.s
 */
 
 Route::prefix('admin')->name('admin.')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Gestion de la carte (CRUD plats)
-    Route::resource('plats', PlatsController::class)->except(['show']);
+    // Authentification gérant (accessible sans être connecté)
+    Route::middleware('guest')->group(function () {
+        Route::get('login', [AuthController::class, 'showLogin'])->name('login');
+        Route::post('login', [AuthController::class, 'login'])
+            ->middleware('throttle:6,1')
+            ->name('login.attempt');
+    });
 
-    // Gestion des catégories
-    Route::resource('categories', CategorieController::class)
-        ->parameters(['categories' => 'categorie'])
-        ->except(['show']);
+    Route::post('logout', [AuthController::class, 'logout'])
+        ->middleware('auth')
+        ->name('logout');
 
-    // Gestion des commandes (liste chronologique + changement de statut)
-    Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
-    Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
-    Route::patch('commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
+    // Espace gérant — réservé aux utilisateurs authentifiés ayant le rôle « admin »
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Gestion des clients
-    Route::resource('clients', ClientController::class)->except(['show']);
+        // Gestion de la carte (CRUD plats)
+        Route::resource('plats', PlatsController::class)->except(['show']);
+
+        // Gestion des catégories
+        Route::resource('categories', CategorieController::class)
+            ->parameters(['categories' => 'categorie'])
+            ->except(['show']);
+
+        // Gestion des commandes (liste chronologique + changement de statut)
+        Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
+        Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
+        Route::patch('commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
+
+        // Gestion des clients
+        Route::resource('clients', ClientController::class)->except(['show']);
+    });
 });
