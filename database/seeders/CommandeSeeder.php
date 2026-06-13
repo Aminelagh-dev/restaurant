@@ -66,14 +66,17 @@ class CommandeSeeder extends Seeder
                 ]);
 
                 // Statut final tiré au hasard. 'statut' n'est pas mass-assignable :
-                // on l'affecte explicitement après création.
+                // on l'affecte explicitement après création. Le created_at est calé
+                // sur la date de commande : il porte l'horodatage du statut initial
+                // « en attente », qui n'est donc pas dupliqué dans l'historique.
                 $indexFinal = array_rand($statuts);
                 $commande->statut = $statuts[$indexFinal];
+                $commande->created_at = $date;
                 $commande->save();
 
-                // Historique : une entrée par étape franchie jusqu'au statut final,
-                // espacée d'environ 20 min à partir de la date de commande.
-                for ($s = 0; $s <= $indexFinal; $s++) {
+                // Historique : une entrée par étape franchie APRÈS « en attente »
+                // (index 0), espacée d'environ 20 min à partir de la date de commande.
+                for ($s = 1; $s <= $indexFinal; $s++) {
                     $commande->historiqueStatuts()->create([
                         'statut' => $statuts[$s],
                         'date_action' => $date->copy()->addMinutes($s * 20),

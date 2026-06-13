@@ -36,7 +36,7 @@ routes/web.php        # Routes HTTP
 - **Commandes** — adresse_livraison, statut
 - **Commandes_plats** — pivot commande ↔ plats (quantités)
 - **Statuts** — En attente, En préparation, En cours de livraison, Livrée
-- **DetailStatut** — historique des statuts d'une commande (`details_statuses`) : commande, statut, date d'action
+- **DetailStatut** — historique des statuts d'une commande (`details_statuses`) : commande, statut, date d'action (hors statut initial « en attente », porté par `created_at`)
 
 ### Front-Office (client)
 

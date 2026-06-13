@@ -68,11 +68,11 @@ class CheckoutController extends Controller
                 'telephone_recepteur' => $data['telephone_recepteur'],
             ]);
             // statut n'est pas mass-assignable : on le fixe explicitement.
-            // Toute nouvelle commande démarre « en attente » et la transition
-            // est journalisée dans l'historique de statut.
+            // Toute nouvelle commande démarre « en attente » ; cet état n'est pas
+            // historisé dans `details_statuses` — son horodatage est le `created_at`
+            // de la commande.
             $commande->statut = Commande::STATUT_ATTENTE;
             $commande->save();
-            $commande->enregistrerHistoriqueStatut();
 
             foreach ($lignes as $ligne) {
                 $plat = $ligne['plat'];

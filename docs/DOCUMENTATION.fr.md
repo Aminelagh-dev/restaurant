@@ -206,9 +206,12 @@ Six tables métier structurent l'application.
 |---------|------|-------|
 | id | bigint (PK) | |
 | commande_id | FK → commandes | `cascadeOnDelete` |
-| statut | enum | Statut atteint lors de la transition |
+| statut | enum | Statut atteint lors de la transition (jamais `en_attente`) |
 | date_action | dateTime | Date/heure du changement de statut |
 | timestamps | | |
+
+> Le statut initial `en_attente` n'est **pas** historisé ici : son horodatage est le
+> `created_at` de la commande. La table ne contient que les transitions suivantes.
 
 #### `commande_plat` (lignes de commande)
 | Colonne | Type | Notes |
@@ -309,15 +312,17 @@ Six tables métier structurent l'application.
    - Le panier est revérifié (non vide, plats toujours disponibles).
    - Un `Client` est créé ou retrouvé par son **numéro de téléphone** (`firstOrCreate`).
    - La commande et ses lignes sont enregistrées dans une **transaction**.
-   - La commande démarre au statut **« En attente »**, journalisé dans l'historique
-     de statut (`details_statuses`).
+   - La commande démarre au statut **« En attente »**. Cet état n'est **pas** stocké
+     dans `details_statuses` : son horodatage est le `created_at` de la commande. Seules
+     les transitions ultérieures alimentent l'historique de statut.
    - Le client est redirigé vers le suivi de sa commande.
 
 5. **Suivi de commande** — Le client recherche sa commande via le **numéro** +
    le **téléphone du destinataire**. L'accès au détail est protégé : seules les
    commandes « autorisées » dans la session (après paiement ou recherche réussie)
    sont consultables ; toute autre tentative renvoie une erreur **403**. La frise de
-   suivi **horodate chaque étape franchie** à partir de l'historique de statut.
+   suivi **horodate chaque étape franchie** : « en attente » via le `created_at` de la
+   commande, les statuts suivants via l'historique (`details_statuses`).
 
 **Navigation et accès gérant.** La barre de navigation supérieure adapte ses actions
 à l'état de connexion :

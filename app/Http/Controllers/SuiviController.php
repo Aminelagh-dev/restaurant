@@ -66,14 +66,19 @@ class SuiviController extends Controller
 
         $commande->load(['lignes.plat', 'client', 'historiqueStatuts']);
 
+        // Date de la première occurrence de chaque statut atteint, pour horodater
+        // les étapes de la frise de suivi. Le statut initial « en attente » n'est
+        // pas stocké dans l'historique : son horodatage est le created_at de la
+        // commande (pas de duplication).
+        $datesStatuts = $commande->historiqueStatuts
+            ->groupBy('statut')
+            ->map(fn ($entrees) => $entrees->first()->date_action);
+        $datesStatuts->put(Commande::STATUT_ATTENTE, $commande->created_at);
+
         return view('suivi.show', [
             'commande' => $commande,
             'statuts' => Commande::STATUTS,
-            // Date de la première occurrence de chaque statut atteint, pour
-            // horodater les étapes de la frise de suivi.
-            'datesStatuts' => $commande->historiqueStatuts
-                ->groupBy('statut')
-                ->map(fn ($entrees) => $entrees->first()->date_action),
+            'datesStatuts' => $datesStatuts,
         ]);
     }
 

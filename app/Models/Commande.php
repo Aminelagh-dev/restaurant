@@ -84,9 +84,16 @@ class Commande extends Model
 
     /**
      * Ajoute une entrée d'historique pour le statut courant de la commande.
+     *
+     * Le statut initial « en attente » n'est jamais historisé : son horodatage
+     * est porté par le champ `created_at` de la commande (pas de duplication).
      */
-    public function enregistrerHistoriqueStatut(?Carbon $date = null): DetailStatut
+    public function enregistrerHistoriqueStatut(?Carbon $date = null): ?DetailStatut
     {
+        if ($this->statut === self::STATUT_ATTENTE) {
+            return null;
+        }
+
         return $this->historiqueStatuts()->create([
             'statut' => $this->statut,
             'date_action' => $date ?? now(),

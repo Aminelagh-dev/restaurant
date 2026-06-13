@@ -205,9 +205,12 @@ Six business tables structure the application.
 |--------|------|-------|
 | id | bigint (PK) | |
 | commande_id | FK → commandes | `cascadeOnDelete` |
-| statut | enum | Status reached at the transition |
+| statut | enum | Status reached at the transition (never `en_attente`) |
 | date_action | dateTime | Date/time of the status change |
 | timestamps | | |
+
+> The initial `en_attente` status is **not** recorded here: its timestamp is the
+> order's `created_at`. The table only holds the later transitions.
 
 #### `commande_plat` (order lines)
 | Column | Type | Notes |
@@ -308,15 +311,17 @@ Six business tables structure the application.
    - The cart is re-checked (non-empty, dishes still available).
    - A `Client` is created or found by **phone number** (`firstOrCreate`).
    - The order and its lines are saved inside a **transaction**.
-   - The order starts in the **"Pending"** status, logged in the status history
-     (`details_statuses`).
+   - The order starts in the **"Pending"** status. This state is **not** stored in
+     `details_statuses`: its timestamp is the order's `created_at`. Only later
+     transitions feed the status history.
    - The customer is redirected to their order tracking page.
 
 5. **Order tracking** — The customer searches their order by **number** +
    **recipient phone**. Access to the detail is protected: only orders "authorized"
    in the session (after checkout or a successful search) can be viewed; any other
    attempt returns a **403** error. The tracking timeline **timestamps each reached
-   step** from the status history.
+   step**: "pending" from the order's `created_at`, the later statuses from the
+   status history (`details_statuses`).
 
 **Navigation and manager access.** The top navigation bar adapts its actions to the
 authentication state:
