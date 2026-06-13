@@ -1,0 +1,10 @@
+# Dossier d'uploads : interdit l'exécution de tout script côté serveur.
+# (Défense en profondeur ; l'extension des fichiers est déjà déduite du MIME.)
+php_flag engine off
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phps|pht|phar|cgi|pl|py|asp|aspx|sh)$">
+    Require all denied
+</FilesMatch>
+
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phps .pht .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phps .pht .phar

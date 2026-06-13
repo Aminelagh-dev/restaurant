@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CommandePlat extends Model
 {
@@ -13,16 +14,22 @@ class CommandePlat extends Model
         'plat_id',
         'quantite',
         'prix_unitaire',
-        'sous_total'
+        'sous_total',
     ];
 
-    public function commande()
+    protected $casts = [
+        'quantite' => 'integer',
+        'prix_unitaire' => 'decimal:2',
+        'sous_total' => 'decimal:2',
+    ];
+
+    public function commande(): BelongsTo
     {
         return $this->belongsTo(Commande::class);
     }
 
-    public function plat()
+    public function plat(): BelongsTo
     {
-        return $this->belongsTo(Plat::class);
+        return $this->belongsTo(Plats::class, 'plat_id');
     }
 }

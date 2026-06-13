@@ -12,6 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('commande_plat', function (Blueprint $table) {
+            // Clé primaire de substitution : commande_plat est une vraie table de
+            // lignes (quantité + prix figés), pas un simple pivot.
+            $table->id();
 
             $table->foreignId('commande_id')
                 ->constrained('commandes')
@@ -29,7 +32,8 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->primary(['commande_id', 'plat_id']);
+            // Un plat n'apparaît qu'une fois par commande (les quantités sont cumulées).
+            $table->unique(['commande_id', 'plat_id']);
         });
     }
 
