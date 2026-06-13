@@ -9,9 +9,9 @@
         @endif
         <span class="dish-flag">
             @if ($epuise)
-                <span class="badge badge-red"><span class="dot"></span> Épuisé</span>
+                <span class="badge badge-red"><span class="dot"></span> {{ __('Épuisé') }}</span>
             @else
-                <span class="badge badge-ok"><span class="dot"></span> Disponible</span>
+                <span class="badge badge-ok"><span class="dot"></span> {{ __('Disponible') }}</span>
             @endif
         </span>
     </a>
@@ -25,21 +25,21 @@
         </div>
         <p class="dish-desc">{{ $plat->description }}</p>
         <div class="dish-meta">
-            <span><x-icon name="clock" size="15" /> {{ $plat->temps_preparation }} min</span>
+            <span><x-icon name="clock" size="15" /> {{ $plat->temps_preparation }} {{ __('min') }}</span>
             @unless ($epuise)
-                <span><x-icon name="box" size="15" /> {{ $plat->stock }} en stock</span>
+                <span><x-icon name="box" size="15" /> {{ __(':count en stock', ['count' => $plat->stock]) }}</span>
             @endunless
         </div>
 
         <div class="dish-foot">
-            <span class="price">{{ number_format($plat->prix, 2, ',', ' ') }} <small>DH</small></span>
+            <span class="price">{{ number_format($plat->prix, 2, ',', ' ') }} <small>{{ __('DH') }}</small></span>
             @if ($epuise)
-                <button class="btn btn-ghost btn-sm" disabled>Indisponible</button>
+                <button class="btn btn-ghost btn-sm" disabled>{{ __('Indisponible') }}</button>
             @else
                 <form method="POST" action="{{ route('panier.store', $plat) }}">
                     @csrf
                     <button type="submit" class="btn btn-primary btn-sm">
-                        <x-icon name="plus" size="15" stroke="2.2" /> Ajouter
+                        <x-icon name="plus" size="15" stroke="2.2" /> {{ __('Ajouter') }}
                     </button>
                 </form>
             @endif

@@ -55,7 +55,7 @@ class PlatsController extends Controller
         Plats::create($data);
 
         return redirect()->route('admin.plats.index')
-            ->with('success', 'Plat ajouté à la carte.');
+            ->with('success', __('Plat ajouté à la carte.'));
     }
 
     public function edit(Plats $plat): View
@@ -75,7 +75,7 @@ class PlatsController extends Controller
         $plat->update($data);
 
         return redirect()->route('admin.plats.index')
-            ->with('success', 'Plat mis à jour.');
+            ->with('success', __('Plat mis à jour.'));
     }
 
     public function destroy(Plats $plat): RedirectResponse
@@ -84,13 +84,13 @@ class PlatsController extends Controller
         // (sinon ses lignes de commande seraient effacées). On invite à le
         // marquer « Épuisé » à la place.
         if ($plat->commandes()->exists()) {
-            return back()->with('error', "« {$plat->nom} » figure dans des commandes : marquez-le « Épuisé » plutôt que de le supprimer.");
+            return back()->with('error', __('« :nom » figure dans des commandes : marquez-le « Épuisé » plutôt que de le supprimer.', ['nom' => $plat->nom]));
         }
 
         $plat->delete();
 
         return redirect()->route('admin.plats.index')
-            ->with('success', 'Plat supprimé.');
+            ->with('success', __('Plat supprimé.'));
     }
 
     /**

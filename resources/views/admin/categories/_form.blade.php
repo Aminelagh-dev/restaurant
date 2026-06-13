@@ -8,22 +8,22 @@
 
     <div class="stack" style="gap: 18px;">
         <div class="field">
-            <label class="label">Nom <span class="req">*</span></label>
-            <input type="text" name="nom" value="{{ old('nom', $categorie->nom) }}" class="input @error('nom') has-err @enderror" required placeholder="Ex : Plats principaux, Spécialités de Fès…">
+            <label class="label">{{ __('Nom') }} <span class="req">*</span></label>
+            <input type="text" name="nom" value="{{ old('nom', $categorie->nom) }}" class="input @error('nom') has-err @enderror" required placeholder="{{ __('Ex : Plats principaux, Spécialités de Fès…') }}">
             @error('nom') <span class="field-err">{{ $message }}</span> @enderror
         </div>
 
         <div class="field">
-            <label class="label">Description</label>
-            <textarea name="description" class="textarea @error('description') has-err @enderror" placeholder="Courte description de la catégorie (facultatif)">{{ old('description', $categorie->description) }}</textarea>
+            <label class="label">{{ __('Description') }}</label>
+            <textarea name="description" class="textarea @error('description') has-err @enderror" placeholder="{{ __('Courte description de la catégorie (facultatif)') }}">{{ old('description', $categorie->description) }}</textarea>
             @error('description') <span class="field-err">{{ $message }}</span> @enderror
         </div>
     </div>
 
     <div class="form-actions">
-        <a href="{{ route('admin.categories.index') }}" class="btn btn-ghost">Annuler</a>
+        <a href="{{ route('admin.categories.index') }}" class="btn btn-ghost">{{ __('Annuler') }}</a>
         <button type="submit" class="btn btn-primary">
-            <x-icon name="check" size="16" stroke="2.2" /> {{ $estEdition ? 'Enregistrer' : 'Créer la catégorie' }}
+            <x-icon name="check" size="16" stroke="2.2" /> {{ $estEdition ? __('Enregistrer') : __('Créer la catégorie') }}
         </button>
     </div>
 </form>

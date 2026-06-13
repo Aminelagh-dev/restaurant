@@ -17,6 +17,15 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Changement de langue (fr / en / ar) — mémorisé en session
+Route::get('/locale/{locale}', function (string $locale) {
+    if (array_key_exists($locale, config('locales.supported', []))) {
+        session(['locale' => $locale]);
+    }
+
+    return redirect()->back();
+})->name('locale.switch');
+
 // Menu gastronomique + détail d'un plat
 Route::get('/', [MenuController::class, 'index'])->name('menu.index');
 Route::get('/plats/{plat}', [MenuController::class, 'show'])->name('menu.show');

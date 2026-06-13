@@ -33,13 +33,13 @@ class CheckoutRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'nom' => 'nom',
-            'prenom' => 'prénom',
-            'telephone' => 'téléphone',
-            'email' => 'email',
-            'adresse_livraison' => 'adresse de livraison',
-            'nom_recepteur' => 'nom du destinataire',
-            'telephone_recepteur' => 'téléphone du destinataire',
+            'nom' => __('nom'),
+            'prenom' => __('prénom'),
+            'telephone' => __('téléphone'),
+            'email' => __('email'),
+            'adresse_livraison' => __('adresse de livraison'),
+            'nom_recepteur' => __('nom du destinataire'),
+            'telephone_recepteur' => __('téléphone du destinataire'),
         ];
     }
 }

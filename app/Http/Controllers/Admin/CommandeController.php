@@ -57,6 +57,6 @@ class CommandeController extends Controller
         $commande->statut = $data['statut'];
         $commande->save();
 
-        return back()->with('success', 'Statut mis à jour : '.$commande->statutLabel().'.');
+        return back()->with('success', __('Statut mis à jour : :statut.', ['statut' => __($commande->statutLabel())]));
     }
 }

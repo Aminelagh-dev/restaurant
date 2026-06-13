@@ -32,8 +32,8 @@ class SuiviController extends Controller
             'numero' => ['required', 'integer'],
             'telephone' => ['required', 'string'],
         ], [], [
-            'numero' => 'numéro de commande',
-            'telephone' => 'téléphone',
+            'numero' => __('numéro de commande'),
+            'telephone' => __('téléphone'),
         ]);
 
         $commande = Commande::query()
@@ -44,7 +44,7 @@ class SuiviController extends Controller
         if (! $commande) {
             return back()
                 ->withInput()
-                ->with('error', 'Aucune commande ne correspond à ces informations.');
+                ->with('error', __('Aucune commande ne correspond à ces informations.'));
         }
 
         self::autoriser($commande);
@@ -61,7 +61,7 @@ class SuiviController extends Controller
         abort_unless(
             in_array($commande->id, $request->session()->get(self::AUTORISEES, []), true),
             403,
-            "Accès non autorisé à cette commande. Recherchez-la via le numéro et le téléphone du destinataire."
+            __('Accès non autorisé à cette commande. Recherchez-la via le numéro et le téléphone du destinataire.')
         );
 
         $commande->load(['lignes.plat', 'client']);

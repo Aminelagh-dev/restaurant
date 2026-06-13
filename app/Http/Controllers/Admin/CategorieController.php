@@ -33,7 +33,7 @@ class CategorieController extends Controller
         Categorie::create($data);
 
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Catégorie créée.');
+            ->with('success', __('Catégorie créée.'));
     }
 
     public function edit(Categorie $categorie): View
@@ -46,19 +46,19 @@ class CategorieController extends Controller
         $categorie->update($this->validateData($request));
 
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Catégorie mise à jour.');
+            ->with('success', __('Catégorie mise à jour.'));
     }
 
     public function destroy(Categorie $categorie): RedirectResponse
     {
         if ($categorie->plats()->exists()) {
-            return back()->with('error', 'Impossible de supprimer une catégorie contenant des plats.');
+            return back()->with('error', __('Impossible de supprimer une catégorie contenant des plats.'));
         }
 
         $categorie->delete();
 
         return redirect()->route('admin.categories.index')
-            ->with('success', 'Catégorie supprimée.');
+            ->with('success', __('Catégorie supprimée.'));
     }
 
     /**
@@ -70,8 +70,8 @@ class CategorieController extends Controller
             'nom' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:1000'],
         ], [], [
-            'nom' => 'nom',
-            'description' => 'description',
+            'nom' => __('nom'),
+            'description' => __('description'),
         ]);
     }
 }

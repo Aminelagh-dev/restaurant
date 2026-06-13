@@ -43,7 +43,7 @@ class ClientController extends Controller
         Client::create($this->validateData($request));
 
         return redirect()->route('admin.clients.index')
-            ->with('success', 'Client créé.');
+            ->with('success', __('Client créé.'));
     }
 
     public function edit(Client $client): View
@@ -56,7 +56,7 @@ class ClientController extends Controller
         $client->update($this->validateData($request, $client));
 
         return redirect()->route('admin.clients.index')
-            ->with('success', 'Client mis à jour.');
+            ->with('success', __('Client mis à jour.'));
     }
 
     public function destroy(Client $client): RedirectResponse
@@ -64,7 +64,7 @@ class ClientController extends Controller
         $client->delete();
 
         return redirect()->route('admin.clients.index')
-            ->with('success', 'Client supprimé.');
+            ->with('success', __('Client supprimé.'));
     }
 
     /**
@@ -81,10 +81,10 @@ class ClientController extends Controller
                 Rule::unique('clients', 'email')->ignore($client?->id),
             ],
         ], [], [
-            'nom' => 'nom',
-            'prenom' => 'prénom',
-            'telephone' => 'téléphone',
-            'email' => 'email',
+            'nom' => __('nom'),
+            'prenom' => __('prénom'),
+            'telephone' => __('téléphone'),
+            'email' => __('email'),
         ]);
     }
 }

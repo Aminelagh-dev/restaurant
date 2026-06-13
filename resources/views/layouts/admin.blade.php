@@ -1,10 +1,14 @@
+@php
+    $locale = app()->getLocale();
+    $dir = config("locales.supported.$locale.dir", 'ltr');
+@endphp
 <!DOCTYPE html>
-<html lang="fr" data-theme="light">
+<html lang="{{ $locale }}" dir="{{ $dir }}" data-theme="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Administration') — Riad Saveurs</title>
+    <title>@yield('title', __('Administration')) — Riad Saveurs</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,18 +34,19 @@
         <div class="main">
             <header class="topbar">
                 <div class="crumb">
-                    <span class="crumb-dim">Administration</span>
+                    <span class="crumb-dim">{{ __('Administration') }}</span>
                     <x-icon name="chevron-right" size="14" stroke="2" />
-                    <span class="crumb-cur">@yield('crumb', 'Tableau de bord')</span>
+                    <span class="crumb-cur">@yield('crumb', __('Tableau de bord'))</span>
                 </div>
                 <div class="topbar-right">
-                    <a href="{{ route('admin.commandes.index') }}" class="icon-btn" aria-label="Commandes">
+                    <x-lang-switcher />
+                    <a href="{{ route('admin.commandes.index') }}" class="icon-btn" aria-label="{{ __('Commandes') }}">
                         <x-icon name="bell" size="19" />
                         @if (\App\Models\Commande::where('statut', \App\Models\Commande::STATUT_PREPARATION)->exists())
                             <span class="icon-dot"></span>
                         @endif
                     </a>
-                    <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+                    <button class="icon-btn" data-theme-toggle aria-label="{{ __('Changer de thème') }}">
                         <span class="theme-sun"><x-icon name="sun" size="19" /></span>
                         <span class="theme-moon"><x-icon name="moon" size="19" /></span>
                     </button>

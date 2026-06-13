@@ -27,13 +27,13 @@ class PanierController extends Controller
     public function store(Request $request, Plats $plat): RedirectResponse
     {
         if ($plat->estEpuise()) {
-            return back()->with('error', "« {$plat->nom} » est actuellement épuisé.");
+            return back()->with('error', __('« :nom » est actuellement épuisé.', ['nom' => $plat->nom]));
         }
 
         $quantite = max(1, (int) $request->input('quantite', 1));
         Panier::add($plat->id, $quantite);
 
-        return back()->with('success', "« {$plat->nom} » a été ajouté au panier.");
+        return back()->with('success', __('« :nom » a été ajouté au panier.', ['nom' => $plat->nom]));
     }
 
     /**
@@ -44,7 +44,7 @@ class PanierController extends Controller
         $quantite = (int) $request->input('quantite', 1);
         Panier::set($plat->id, $quantite);
 
-        return back()->with('success', 'Panier mis à jour.');
+        return back()->with('success', __('Panier mis à jour.'));
     }
 
     /**
@@ -54,7 +54,7 @@ class PanierController extends Controller
     {
         Panier::remove($plat->id);
 
-        return back()->with('success', 'Plat retiré du panier.');
+        return back()->with('success', __('Plat retiré du panier.'));
     }
 
     /**
@@ -64,6 +64,6 @@ class PanierController extends Controller
     {
         Panier::clear();
 
-        return back()->with('success', 'Le panier a été vidé.');
+        return back()->with('success', __('Le panier a été vidé.'));
     }
 }

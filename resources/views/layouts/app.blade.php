@@ -1,10 +1,14 @@
+@php
+    $locale = app()->getLocale();
+    $dir = config("locales.supported.$locale.dir", 'ltr');
+@endphp
 <!DOCTYPE html>
-<html lang="fr" data-theme="light">
+<html lang="{{ $locale }}" dir="{{ $dir }}" data-theme="light">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Cuisine marocaine traditionnelle') — Riad Saveurs</title>
+    <title>@yield('title', __('Cuisine marocaine traditionnelle')) — Riad Saveurs</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,20 +38,22 @@
 
                 <nav class="topnav-links">
                     <a href="{{ route('menu.index') }}"
-                       class="topnav-link {{ request()->routeIs('menu.*') ? 'is-active' : '' }}">Menu</a>
+                       class="topnav-link {{ request()->routeIs('menu.*') ? 'is-active' : '' }}">{{ __('Menu') }}</a>
                     <a href="{{ route('suivi.index') }}"
-                       class="topnav-link {{ request()->routeIs('suivi.*') ? 'is-active' : '' }}">Suivre ma commande</a>
-                    <a href="{{ route('admin.dashboard') }}" class="topnav-link">Espace gérant</a>
+                       class="topnav-link {{ request()->routeIs('suivi.*') ? 'is-active' : '' }}">{{ __('Suivre ma commande') }}</a>
+                    <a href="{{ route('admin.dashboard') }}" class="topnav-link">{{ __('Espace gérant') }}</a>
                 </nav>
 
                 <div class="topnav-spacer"></div>
 
-                <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+                <x-lang-switcher />
+
+                <button class="icon-btn" data-theme-toggle aria-label="{{ __('Changer de thème') }}">
                     <span class="theme-sun"><x-icon name="sun" size="18" /></span>
                     <span class="theme-moon"><x-icon name="moon" size="18" /></span>
                 </button>
 
-                <a href="{{ route('panier.index') }}" class="icon-btn cart-btn" aria-label="Panier">
+                <a href="{{ route('panier.index') }}" class="icon-btn cart-btn" aria-label="{{ __('Panier') }}">
                     <x-icon name="cart" size="19" />
                     @php($nbPanier = \App\Support\Panier::count())
                     @if ($nbPanier > 0)
@@ -64,7 +70,7 @@
         </main>
 
         <footer class="front-foot">
-            Riad Saveurs — Cuisine marocaine traditionnelle · Tagines, Couscous, Pastillas &amp; Thés ·
+            Riad Saveurs — {{ __('Cuisine marocaine traditionnelle') }} · {{ __('Tagines, Couscous, Pastillas & Thés') }} ·
             © {{ date('Y') }}
         </footer>
     </div>

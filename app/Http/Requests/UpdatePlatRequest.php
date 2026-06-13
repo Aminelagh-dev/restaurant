@@ -36,10 +36,10 @@ class UpdatePlatRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'categorie_id' => 'catégorie',
-            'temps_preparation' => 'temps de préparation',
-            'image' => "URL de l'image",
-            'image_file' => 'image',
+            'categorie_id' => __('catégorie'),
+            'temps_preparation' => __('temps de préparation'),
+            'image' => __("URL de l'image"),
+            'image_file' => __('image'),
         ];
     }
 }

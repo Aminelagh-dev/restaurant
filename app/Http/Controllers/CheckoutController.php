@@ -19,7 +19,7 @@ class CheckoutController extends Controller
     {
         if (Panier::isEmpty()) {
             return redirect()->route('menu.index')
-                ->with('error', 'Votre panier est vide.');
+                ->with('error', __('Votre panier est vide.'));
         }
 
         return view('checkout.create', [
@@ -37,14 +37,14 @@ class CheckoutController extends Controller
 
         if ($lignes->isEmpty()) {
             return redirect()->route('menu.index')
-                ->with('error', 'Votre panier est vide.');
+                ->with('error', __('Votre panier est vide.'));
         }
 
         // Vérifie la disponibilité avant d'enregistrer.
         $indisponible = $lignes->first(fn ($l) => $l['plat']->estEpuise());
         if ($indisponible) {
             return redirect()->route('panier.index')
-                ->with('error', "« {$indisponible['plat']->nom} » n'est plus disponible.");
+                ->with('error', __('« :nom » n\'est plus disponible.', ['nom' => $indisponible['plat']->nom]));
         }
 
         $data = $request->validated();
@@ -95,6 +95,6 @@ class CheckoutController extends Controller
         SuiviController::autoriser($commande);
 
         return redirect()->route('suivi.show', $commande)
-            ->with('success', 'Votre commande a bien été enregistrée. Vous pouvez suivre son statut ci-dessous.');
+            ->with('success', __('Votre commande a bien été enregistrée. Vous pouvez suivre son statut ci-dessous.'));
     }
 }

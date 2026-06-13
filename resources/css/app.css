@@ -430,3 +430,41 @@ img { display: block; max-width: 100%; }
   .topnav-links { display: none; }
   .data-table { font-size: 12.5px; }
 }
+
+/* ====================== sélecteur de langue ====================== */
+.lang-switch { display: inline-flex; align-items: center; gap: 2px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 3px; }
+.lang-opt { padding: 4px 9px; border-radius: var(--r-pill); font-size: 11.5px; font-weight: 700; color: var(--ink-3); letter-spacing: .02em; transition: .14s; line-height: 1; }
+.lang-opt:hover { color: var(--ink); }
+.lang-opt.is-active { background: var(--accent); color: var(--accent-fg); }
+
+/* ====================== RTL — العربية ====================== */
+[dir="rtl"] body { text-align: right; font-family: "Segoe UI", "Tahoma", "Geeza Pro", "Noto Sans Arabic", "Manrope", sans-serif; }
+[dir="rtl"] .topnav-links { margin-left: 0; margin-right: 8px; }
+[dir="rtl"] .user-meta { text-align: right; }
+[dir="rtl"] .data-table thead th { text-align: right; }
+[dir="rtl"] .text-right { text-align: left; }
+
+/* badges, pastilles & compteurs positionnés en absolu */
+[dir="rtl"] .nav-label { left: auto; right: 40px; }
+[dir="rtl"] .nav-badge { right: auto; left: 11px; }
+[dir="rtl"] .icon-dot { right: auto; left: 9px; }
+[dir="rtl"] .cart-count { right: auto; left: -6px; }
+[dir="rtl"] .dish-flag { left: auto; right: 12px; }
+
+/* interrupteur (toggle de disponibilité) */
+[dir="rtl"] .toggle-knob { left: auto; right: 2px; }
+[dir="rtl"] .toggle.is-on .toggle-knob { transform: translateX(-19px); }
+
+/* listes & timeline de suivi */
+[dir="rtl"] .alert ul { padding-left: 0; padding-right: 18px; }
+[dir="rtl"] .timeline { padding: 4px 6px 0 0; }
+[dir="rtl"] .tl-item { padding: 0 30px 22px 0; }
+[dir="rtl"] .tl-item::before { left: auto; right: 6px; }
+[dir="rtl"] .tl-dot { left: auto; right: 0; }
+
+/* champ input + addon */
+[dir="rtl"] .input-group .addon { border-left: 1px solid var(--border); border-right: none; border-radius: var(--r-md) 0 0 var(--r-md); }
+
+/* icônes directionnelles miroir (chevrons / flèches du fil d'ariane & pagination) */
+[dir="rtl"] .crumb > svg,
+[dir="rtl"] .pager svg { transform: scaleX(-1); }
