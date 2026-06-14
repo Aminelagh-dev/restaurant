@@ -50,10 +50,6 @@
                     <div class="spec-val">{{ number_format($plat->prix, 0, ',', ' ') }}</div>
                     <div class="spec-lbl">{{ __('Prix (DH)') }}</div>
                 </div>
-                <div class="spec">
-                    <div class="spec-val">{{ $epuise ? '0' : $plat->stock }}</div>
-                    <div class="spec-lbl">{{ __('En stock') }}</div>
-                </div>
             </div>
 
             @if ($ingredients->isNotEmpty())
@@ -72,7 +68,7 @@
                     <form method="POST" action="{{ route('panier.store', $plat) }}"
                           style="display: flex; gap: 12px; align-items: center;">
                         @csrf
-                        <div class="qty" data-qty data-min="1" data-max="{{ max(1, $plat->stock) }}">
+                        <div class="qty" data-qty data-min="1" data-max="99">
                             <button type="button" data-step="-1" aria-label="{{ __('Moins') }}"><x-icon name="minus" size="14" stroke="2.2" /></button>
                             <input type="hidden" name="quantite" value="1">
                             <span class="val">1</span>

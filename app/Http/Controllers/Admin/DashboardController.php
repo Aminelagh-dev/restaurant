@@ -20,7 +20,7 @@ class DashboardController extends Controller
     {
         $stats = [
             'plats' => Plat::count(),
-            'plats_epuises' => Plat::where('disponible', false)->orWhere('stock', '<=', 0)->count(),
+            'plats_epuises' => Plat::where('disponible', false)->count(),
             'categories' => Categorie::count(),
             'clients' => Client::count(),
             'commandes' => Commande::count(),

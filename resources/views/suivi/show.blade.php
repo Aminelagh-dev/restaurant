@@ -39,11 +39,15 @@
                         <div class="tl-title">{{ __($libelle) }}</div>
                         <div class="tl-sub">
                             @switch($cle)
+                                @case('en_attente') {{ __('Votre commande a bien été reçue.') }} @break
                                 @case('en_preparation') {{ __('Vos plats sont préparés par nos chefs.') }} @break
                                 @case('en_livraison') {{ __('Votre commande est en route.') }} @break
                                 @case('livree') {{ __('Bon appétit !') }} @break
                             @endswitch
                         </div>
+                        @if ($datesStatuts->has($cle))
+                            <div class="tl-time"><x-icon name="clock" size="12" /> {{ $datesStatuts[$cle]->translatedFormat(__('d F Y à H:i')) }}</div>
+                        @endif
                     </li>
                 @endforeach
             </ul>

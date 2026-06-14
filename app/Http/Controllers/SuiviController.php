@@ -64,11 +64,21 @@ class SuiviController extends Controller
             __('Accès non autorisé à cette commande. Recherchez-la via le numéro et le téléphone du destinataire.')
         );
 
-        $commande->load(['lignes.plat', 'client']);
+        $commande->load(['lignes.plat', 'client', 'historiqueStatuts']);
+
+        // Date de la première occurrence de chaque statut atteint, pour horodater
+        // les étapes de la frise de suivi. Le statut initial « en attente » n'est
+        // pas stocké dans l'historique : son horodatage est le created_at de la
+        // commande (pas de duplication).
+        $datesStatuts = $commande->historiqueStatuts
+            ->groupBy('statut')
+            ->map(fn ($entrees) => $entrees->first()->date_action);
+        $datesStatuts->put(Commande::STATUT_ATTENTE, $commande->created_at);
 
         return view('suivi.show', [
             'commande' => $commande,
             'statuts' => Commande::STATUTS,
+            'datesStatuts' => $datesStatuts,
         ]);
     }
 

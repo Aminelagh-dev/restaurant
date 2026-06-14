@@ -36,12 +36,6 @@
             @error('temps_preparation') <span class="field-err">{{ $message }}</span> @enderror
         </div>
 
-        <div class="field">
-            <label class="label">{{ __('Stock') }} <span class="req">*</span></label>
-            <input type="number" min="0" name="stock" value="{{ old('stock', $plat->stock ?? 0) }}" class="input @error('stock') has-err @enderror" required>
-            @error('stock') <span class="field-err">{{ $message }}</span> @enderror
-        </div>
-
         <div class="field col-span-2">
             <label class="label">{{ __('Description') }} <span class="req">*</span></label>
             <textarea name="description" class="textarea @error('description') has-err @enderror" required placeholder="{{ __('Décrivez le plat, son origine, ses saveurs…') }}">{{ old('description', $plat->description) }}</textarea>

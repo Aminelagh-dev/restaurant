@@ -40,7 +40,7 @@
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>{{ __('Plat') }}</th><th>{{ __('Catégorie') }}</th><th>{{ __('Prix') }}</th><th>{{ __('Stock') }}</th><th>{{ __('Disponibilité') }}</th><th></th>
+                        <th>{{ __('Plat') }}</th><th>{{ __('Catégorie') }}</th><th>{{ __('Prix') }}</th><th>{{ __('Disponibilité') }}</th><th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,7 +61,6 @@
                             </td>
                             <td>{{ $plat->categorie->nom ?? '—' }}</td>
                             <td class="cell-strong nowrap">{{ number_format($plat->prix, 2, ',', ' ') }} {{ __('DH') }}</td>
-                            <td>{{ $plat->stock }}</td>
                             <td>
                                 @if ($plat->estEpuise())
                                     <span class="badge badge-red"><span class="dot"></span> {{ __('Épuisé') }}</span>

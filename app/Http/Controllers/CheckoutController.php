@@ -68,7 +68,10 @@ class CheckoutController extends Controller
                 'telephone_recepteur' => $data['telephone_recepteur'],
             ]);
             // statut n'est pas mass-assignable : on le fixe explicitement.
-            $commande->statut = Commande::STATUT_PREPARATION;
+            // Toute nouvelle commande démarre « en attente » ; cet état n'est pas
+            // historisé dans `details_statuses` — son horodatage est le `created_at`
+            // de la commande.
+            $commande->statut = Commande::STATUT_ATTENTE;
             $commande->save();
 
             foreach ($lignes as $ligne) {
@@ -80,12 +83,6 @@ class CheckoutController extends Controller
                     'prix_unitaire' => $plat->prix,
                     'sous_total' => $ligne['sous_total'],
                 ]);
-
-                // Décrémente le stock et marque en rupture si épuisé.
-                $plat->decrement('stock', $ligne['quantite']);
-                if ($plat->fresh()->stock <= 0) {
-                    $plat->update(['disponible' => false]);
-                }
             }
 
             return $commande;

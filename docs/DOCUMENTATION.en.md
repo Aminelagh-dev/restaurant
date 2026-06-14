@@ -175,7 +175,6 @@ Six business tables structure the application.
 | temps_preparation | integer | Minutes |
 | prix | decimal(10,2) | In MAD (DH) |
 | image | string (nullable) | Absolute URL **or** local path |
-| stock | integer | Default 0 |
 | disponible | boolean | Default `true` |
 | timestamps | | |
 
@@ -198,8 +197,20 @@ Six business tables structure the application.
 | adresse_livraison | string | Delivery address |
 | nom_recepteur | string | Delivery recipient |
 | telephone_recepteur | string | Used for order tracking |
-| statut | enum | `en_preparation` · `en_livraison` · `livree` |
+| statut | enum | `en_attente` (default) · `en_preparation` · `en_livraison` · `livree` |
 | timestamps | | |
+
+#### `details_statuses` (status history)
+| Column | Type | Notes |
+|--------|------|-------|
+| id | bigint (PK) | |
+| commande_id | FK → commandes | `cascadeOnDelete` |
+| statut | enum | Status reached at the transition (never `en_attente`) |
+| date_action | dateTime | Date/time of the status change |
+| timestamps | | |
+
+> The initial `en_attente` status is **not** recorded here: its timestamp is the
+> order's `created_at`. The table only holds the later transitions.
 
 #### `commande_plat` (order lines)
 | Column | Type | Notes |
@@ -229,8 +240,9 @@ Six business tables structure the application.
 - `Categorie` **hasMany** `Plat`
 - `Plat` **belongsTo** `Categorie`; **belongsToMany** `Commande` (via `commande_plat`)
 - `Client` **hasMany** `Commande`
-- `Commande` **belongsTo** `Client`; **hasMany** `CommandePlat` (lines); **belongsToMany** `Plat`
+- `Commande` **belongsTo** `Client`; **hasMany** `CommandePlat` (lines) and `DetailStatut` (status history); **belongsToMany** `Plat`
 - `CommandePlat` **belongsTo** `Commande` and `Plat`
+- `DetailStatut` **belongsTo** `Commande` (one row per status change)
 
 ### 2.4 Route map
 
@@ -299,14 +311,17 @@ Six business tables structure the application.
    - The cart is re-checked (non-empty, dishes still available).
    - A `Client` is created or found by **phone number** (`firstOrCreate`).
    - The order and its lines are saved inside a **transaction**.
-   - Each dish's **stock is decremented**; a dish whose stock reaches 0 is
-     automatically marked unavailable.
+   - The order starts in the **"Pending"** status. This state is **not** stored in
+     `details_statuses`: its timestamp is the order's `created_at`. Only later
+     transitions feed the status history.
    - The customer is redirected to their order tracking page.
 
 5. **Order tracking** — The customer searches their order by **number** +
    **recipient phone**. Access to the detail is protected: only orders "authorized"
    in the session (after checkout or a successful search) can be viewed; any other
-   attempt returns a **403** error.
+   attempt returns a **403** error. The tracking timeline **timestamps each reached
+   step**: "pending" from the order's `created_at`, the later statuses from the
+   status history (`details_statuses`).
 
 **Navigation and manager access.** The top navigation bar adapts its actions to the
 authentication state:
@@ -340,7 +355,8 @@ authentication state:
 
 - **Order management** (`CommandeController`) — Paginated chronological list
   (15/page), filterable by status, order detail, and **real-time status change**
-  (In preparation → Out for delivery → Delivered).
+  (Pending → In preparation → Out for delivery → Delivered). Each change is **logged**
+  in the status history (`details_statuses`).
 
 - **Staff / team management** (`StaffController`, *System → Team*) — Create and edit
   manager accounts, and **activate / deactivate** them. A deactivated manager can no
@@ -354,9 +370,9 @@ The top bar and sidebar display the **logged-in manager** (name + initials) and 
 
 - **Frozen prices**: at order time, `prix_unitaire` is copied into the order line. A
   later change to a dish's price does not alter past orders.
-- **Stock management**: automatic decrement at order time; flagged "unavailable" as
-  soon as stock reaches 0. A dish is considered **out of stock** if it is marked
-  unavailable **or** its stock is ≤ 0 (`Plat::estEpuise()`).
+- **Availability**: a dish is considered **out of stock** when it is marked
+  unavailable (`Plat::estEpuise()`). The manager toggles availability from the dish
+  form.
 - **One customer per phone**: `firstOrCreate` avoids duplicate customers.
 - **History integrity**: a dish already ordered, or a non-empty category, cannot be
   deleted.
@@ -549,8 +565,8 @@ specification, plus the back-office security and interface translation:
   not a plain pivot — Allows the **unit price to be frozen** at order time,
   guaranteeing a faithful history even as the menu evolves.
 
-- **Transaction at checkout** — Creating the order, its lines and decrementing stock
-  happen **atomically**: no partial order on error.
+- **Transaction at checkout** — Creating the order and its lines happens
+  **atomically**: no partial order on error.
 
 - **`web` guard authentication + dedicated role middleware** — We rely on Laravel's
   standard guard, and a separate `admin` middleware enforces the role check. The role

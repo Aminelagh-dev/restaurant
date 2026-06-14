@@ -7,33 +7,26 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Historique des changements de statut d'une commande : une ligne par
+     * transition, avec la date/heure de l'action.
      */
     public function up(): void
     {
-        Schema::create('commandes', function (Blueprint $table) {
+        Schema::create('details_statuses', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('client_id')
-                ->constrained('clients')
+            $table->foreignId('commande_id')
+                ->constrained('commandes')
                 ->cascadeOnDelete();
-
-            $table->dateTime('date_commande');
-
-            $table->decimal('montant_total', 10, 2);
-
-            $table->string('adresse_livraison');
-
-            $table->string('nom_recepteur');
-
-            $table->string('telephone_recepteur');
 
             $table->enum('statut', [
                 'en_attente',
                 'en_preparation',
                 'en_livraison',
-                'livree'
-            ])->default('en_attente');
+                'livree',
+            ]);
+
+            $table->dateTime('date_action');
 
             $table->timestamps();
         });
@@ -44,6 +37,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('commandes');
+        Schema::dropIfExists('details_statuses');
     }
 };

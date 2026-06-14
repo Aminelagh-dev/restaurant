@@ -26,9 +26,6 @@
         <p class="dish-desc">{{ $plat->description }}</p>
         <div class="dish-meta">
             <span><x-icon name="clock" size="15" /> {{ $plat->temps_preparation }} {{ __('min') }}</span>
-            @unless ($epuise)
-                <span><x-icon name="box" size="15" /> {{ __(':count en stock', ['count' => $plat->stock]) }}</span>
-            @endunless
         </div>
 
         <div class="dish-foot">

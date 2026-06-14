@@ -18,14 +18,12 @@ class Plat extends Model
         'temps_preparation',
         'prix',
         'image',
-        'stock',
         'disponible',
     ];
 
     protected $casts = [
         'prix' => 'decimal:2',
         'temps_preparation' => 'integer',
-        'stock' => 'integer',
         'disponible' => 'boolean',
     ];
 
@@ -42,11 +40,11 @@ class Plat extends Model
     }
 
     /**
-     * Un plat est considéré en rupture si marqué indisponible ou stock épuisé.
+     * Un plat est considéré en rupture s'il est marqué indisponible.
      */
     public function estEpuise(): bool
     {
-        return ! $this->disponible || $this->stock <= 0;
+        return ! $this->disponible;
     }
 
     /**

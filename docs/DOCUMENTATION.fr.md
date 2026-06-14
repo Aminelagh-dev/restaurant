@@ -176,7 +176,6 @@ Six tables métier structurent l'application.
 | temps_preparation | integer | Minutes |
 | prix | decimal(10,2) | En DH |
 | image | string (nullable) | URL absolue **ou** chemin local |
-| stock | integer | Défaut 0 |
 | disponible | boolean | Défaut `true` |
 | timestamps | | |
 
@@ -199,8 +198,20 @@ Six tables métier structurent l'application.
 | adresse_livraison | string | |
 | nom_recepteur | string | Destinataire de la livraison |
 | telephone_recepteur | string | Sert au suivi de commande |
-| statut | enum | `en_preparation` · `en_livraison` · `livree` |
+| statut | enum | `en_attente` (défaut) · `en_preparation` · `en_livraison` · `livree` |
 | timestamps | | |
+
+#### `details_statuses` (historique des statuts)
+| Colonne | Type | Notes |
+|---------|------|-------|
+| id | bigint (PK) | |
+| commande_id | FK → commandes | `cascadeOnDelete` |
+| statut | enum | Statut atteint lors de la transition (jamais `en_attente`) |
+| date_action | dateTime | Date/heure du changement de statut |
+| timestamps | | |
+
+> Le statut initial `en_attente` n'est **pas** historisé ici : son horodatage est le
+> `created_at` de la commande. La table ne contient que les transitions suivantes.
 
 #### `commande_plat` (lignes de commande)
 | Colonne | Type | Notes |
@@ -230,8 +241,9 @@ Six tables métier structurent l'application.
 - `Categorie` **hasMany** `Plat`
 - `Plat` **belongsTo** `Categorie` ; **belongsToMany** `Commande` (via `commande_plat`)
 - `Client` **hasMany** `Commande`
-- `Commande` **belongsTo** `Client` ; **hasMany** `CommandePlat` (lignes) ; **belongsToMany** `Plat`
+- `Commande` **belongsTo** `Client` ; **hasMany** `CommandePlat` (lignes) et `DetailStatut` (historique de statut) ; **belongsToMany** `Plat`
 - `CommandePlat` **belongsTo** `Commande` et `Plat`
+- `DetailStatut` **belongsTo** `Commande` (une ligne par changement de statut)
 
 ### 2.4 Cartographie des routes
 
@@ -300,14 +312,17 @@ Six tables métier structurent l'application.
    - Le panier est revérifié (non vide, plats toujours disponibles).
    - Un `Client` est créé ou retrouvé par son **numéro de téléphone** (`firstOrCreate`).
    - La commande et ses lignes sont enregistrées dans une **transaction**.
-   - Le **stock de chaque plat est décrémenté** ; un plat dont le stock tombe à 0
-     est automatiquement marqué indisponible.
+   - La commande démarre au statut **« En attente »**. Cet état n'est **pas** stocké
+     dans `details_statuses` : son horodatage est le `created_at` de la commande. Seules
+     les transitions ultérieures alimentent l'historique de statut.
    - Le client est redirigé vers le suivi de sa commande.
 
 5. **Suivi de commande** — Le client recherche sa commande via le **numéro** +
    le **téléphone du destinataire**. L'accès au détail est protégé : seules les
    commandes « autorisées » dans la session (après paiement ou recherche réussie)
-   sont consultables ; toute autre tentative renvoie une erreur **403**.
+   sont consultables ; toute autre tentative renvoie une erreur **403**. La frise de
+   suivi **horodate chaque étape franchie** : « en attente » via le `created_at` de la
+   commande, les statuts suivants via l'historique (`details_statuses`).
 
 **Navigation et accès gérant.** La barre de navigation supérieure adapte ses actions
 à l'état de connexion :
@@ -343,7 +358,8 @@ Six tables métier structurent l'application.
 
 - **Gestion des commandes** (`CommandeController`) — Liste chronologique paginée
   (15/page), filtrable par statut, détail d'une commande, et **changement de statut**
-  en temps réel (En préparation → En cours de livraison → Livrée).
+  en temps réel (En attente → En préparation → En cours de livraison → Livrée).
+  Chaque changement est **journalisé** dans l'historique de statut (`details_statuses`).
 
 - **Gestion de l'équipe** (`StaffController`, *Système → Équipe*) — Création et
   modification des comptes gérants, et **activation / désactivation**. Un gérant
@@ -359,9 +375,9 @@ initiales) et un bouton de **déconnexion**.
 - **Prix figés** : à la commande, le `prix_unitaire` est copié dans la ligne de
   commande. Une modification ultérieure du prix d'un plat n'altère pas les commandes
   passées.
-- **Gestion du stock** : décrément automatique à la commande ; passage en
-  « indisponible » dès que le stock atteint 0. Un plat est considéré **épuisé** s'il
-  est marqué indisponible **ou** si son stock est ≤ 0 (`Plat::estEpuise()`).
+- **Disponibilité** : un plat est considéré **épuisé** lorsqu'il est marqué
+  indisponible (`Plat::estEpuise()`). Le gérant bascule la disponibilité depuis la
+  fiche du plat.
 - **Client unique par téléphone** : le `firstOrCreate` évite les doublons clients.
 - **Intégrité de l'historique** : impossible de supprimer un plat déjà commandé ou
   une catégorie non vide.
@@ -560,9 +576,8 @@ l'interface :
   et non simple pivot — Permet de **figer le prix unitaire** au moment de la commande,
   garantissant un historique fidèle même si la carte évolue.
 
-- **Transaction au checkout** — La création de la commande, de ses lignes et la
-  décrémentation du stock se font de façon **atomique** : aucune commande partielle
-  en cas d'erreur.
+- **Transaction au checkout** — La création de la commande et de ses lignes se fait
+  de façon **atomique** : aucune commande partielle en cas d'erreur.
 
 - **Authentification garde `web` + middleware de rôle dédié** — On s'appuie sur la
   garde Laravel standard, et un middleware `admin` séparé applique le contrôle de rôle.

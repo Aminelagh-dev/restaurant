@@ -26,7 +26,7 @@ routes/web.php        # Routes HTTP
 
 ### Entités principales
 
-- **Plats** — libellé, stock (disponible/épuisé), image
+- **Plats** — libellé, disponibilité (disponible/épuisé), image
 - **Categories** — type (Entrées, Plats principaux, Desserts, Thés)
 - **Thematiques** — région (Fès, Marrakech, etc.)
 - **Ingrediants** — produits associés aux plats
@@ -35,7 +35,8 @@ routes/web.php        # Routes HTTP
 - **Clients** — nom, prénom, email
 - **Commandes** — adresse_livraison, statut
 - **Commandes_plats** — pivot commande ↔ plats (quantités)
-- **Statuts** — En préparation, En cours de livraison, Livrée
+- **Statuts** — En attente, En préparation, En cours de livraison, Livrée
+- **DetailStatut** — historique des statuts d'une commande (`details_statuses`) : commande, statut, date d'action (hors statut initial « en attente », porté par `created_at`)
 
 ### Front-Office (client)
 
@@ -47,7 +48,7 @@ routes/web.php        # Routes HTTP
 
 ### Back-Office (gérant)
 
-1. CRUD carte (plats, prix, rupture de stock)
+1. CRUD carte (plats, prix, disponibilité)
 2. Gestion catégories et thématiques régionales
 3. Gestion commandes (liste chronologique, changement de statut)
 4. Tableau de bord (plats populaires, CA quotidien)
