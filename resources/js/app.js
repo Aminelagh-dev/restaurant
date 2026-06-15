@@ -100,21 +100,10 @@ async function sendCartQty(wrap) {
     if (!form) return;
 
     wrap.classList.add('is-loading');
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     try {
-        const response = await fetch(form.action, {
-            method: 'POST', // _method=PATCH transmis via le champ caché du formulaire
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': token,
-                Accept: 'application/json',
-            },
-            body: new FormData(form),
-        });
-
-        if (!response.ok) throw new Error('bad status');
-        const data = await response.json();
+        // axios.post + _method=PATCH (champ caché du formulaire) → route PATCH.
+        const { data } = await window.axios.post(form.action, new FormData(form));
 
         // Sous-total de la ligne concernée.
         const sub = wrap.closest('.cart-line')?.querySelector('[data-line-subtotal]');
@@ -152,35 +141,27 @@ async function submitCartForm(form) {
     button?.classList.add('is-loading');
     button?.setAttribute('disabled', 'disabled');
 
-    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
     try {
-        const response = await fetch(form.action, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': token,
-                Accept: 'application/json',
-            },
-            body: new FormData(form),
-        });
-
-        const data = await response.json().catch(() => ({}));
+        const { data } = await window.axios.post(form.action, new FormData(form));
 
         if (typeof data.count === 'number') updateCartCount(data.count);
-        showToast(data.message || (response.ok ? '✓' : 'Erreur'), response.ok ? 'ok' : 'err');
-    } catch (e) {
-        // Réseau indisponible : repli sur la soumission classique (rechargement).
-        form.dataset.busy = '0';
+        showToast(data.message || '✓', 'ok');
+    } catch (error) {
+        if (error.response) {
+            // Réponse d'erreur applicative (ex. plat épuisé → 422) : on affiche le message.
+            const data = error.response.data || {};
+            if (typeof data.count === 'number') updateCartCount(data.count);
+            showToast(data.message || 'Erreur', 'err');
+        } else {
+            // Pas de réponse (réseau) : repli sur la soumission classique (rechargement).
+            form.submit();
+            return;
+        }
+    } finally {
         button?.classList.remove('is-loading');
         button?.removeAttribute('disabled');
-        form.submit();
-        return;
+        form.dataset.busy = '0';
     }
-
-    button?.classList.remove('is-loading');
-    button?.removeAttribute('disabled');
-    form.dataset.busy = '0';
 }
 
 function bind() {
