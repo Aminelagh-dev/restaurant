@@ -72,6 +72,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         ->middleware('auth')
         ->name('logout');
 
+    // Commandes — accessibles aux gérants ET aux opérateurs (back-office).
+    // L'opérateur ne voit que cette section ; il fait avancer le statut au
+    // statut suivant uniquement (contrôle appliqué dans le contrôleur).
+    Route::middleware(['auth', 'staff'])->group(function () {
+        Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
+        Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
+        Route::patch('commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
+    });
+
     // Espace gérant — réservé aux utilisateurs authentifiés ayant le rôle « admin »
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
@@ -84,15 +93,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->parameters(['categories' => 'categorie'])
             ->except(['show']);
 
-        // Gestion des commandes (liste chronologique + changement de statut)
-        Route::get('commandes', [CommandeController::class, 'index'])->name('commandes.index');
-        Route::get('commandes/{commande}', [CommandeController::class, 'show'])->name('commandes.show');
-        Route::patch('commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
-
         // Gestion des clients
         Route::resource('clients', ClientController::class)->except(['show']);
 
-        // Gestion de l'équipe (comptes gérants) + activation/désactivation
+        // Gestion de l'équipe (comptes gérants & opérateurs) + activation/désactivation
         Route::resource('equipe', StaffController::class)
             ->parameters(['equipe' => 'user'])
             ->only(['index', 'create', 'store', 'edit', 'update']);

@@ -53,6 +53,17 @@ class CommandeController extends Controller
             'statut' => ['required', 'string', 'in:'.implode(',', array_keys(Commande::STATUTS))],
         ]);
 
+        // Le gérant peut revenir à n'importe quelle étape antérieure mais ne peut
+        // avancer que d'un cran (statut suivant) ; l'opérateur ne peut que faire
+        // avancer la commande au statut immédiatement suivant.
+        if ($request->user()->isAdmin()) {
+            if ($commande->positionStatut($data['statut']) > $commande->positionStatut() + 1) {
+                abort(403, __('Action non autorisée.'));
+            }
+        } elseif ($data['statut'] !== $commande->statutSuivant()) {
+            abort(403, __('Action non autorisée.'));
+        }
+
         // On ne journalise une transition que si le statut change réellement,
         // pour éviter d'empiler des entrées d'historique identiques.
         if ($commande->statut !== $data['statut']) {

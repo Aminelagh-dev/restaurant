@@ -25,6 +25,18 @@ class DatabaseSeeder extends Seeder
             ]
         )->forceFill(['role' => User::ROLE_ADMIN])->save();
 
+        // Compte opérateur : accès au back-office limité aux commandes
+        // (consultation + passage au statut suivant uniquement).
+        User::updateOrCreate(
+            ['email' => 'operator@riad.test'],
+            [
+                'nom' => 'Opérateur',
+                'prenom' => 'Riad',
+                'telephone' => '0600000001',
+                'password' => Hash::make('password'),
+            ]
+        )->forceFill(['role' => User::ROLE_OPERATOR])->save();
+
         $this->call([
             CarteSeeder::class,
             CommandeSeeder::class,

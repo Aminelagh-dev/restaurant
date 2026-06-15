@@ -41,10 +41,11 @@ class AuthController extends Controller
             ]);
         }
 
-        // Défense en profondeur : seul le rôle « admin » accède au back-office.
-        // On referme la session d'authentification, puis on renvoie l'erreur au
-        // formulaire (sans invalider la session pour préserver le message flashé).
-        if (! $request->user()->isAdmin()) {
+        // Défense en profondeur : seuls les rôles « admin » et « operator »
+        // accèdent au back-office. On referme la session d'authentification,
+        // puis on renvoie l'erreur au formulaire (sans invalider la session
+        // pour préserver le message flashé).
+        if (! $request->user()->isAdmin() && ! $request->user()->isOperator()) {
             Auth::logout();
 
             throw ValidationException::withMessages([
@@ -63,7 +64,9 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.dashboard'));
+        // Chaque rôle est dirigé vers sa page d'accueil (l'opérateur vers les
+        // commandes), sauf si une page précise était demandée avant connexion.
+        return redirect()->intended(route($request->user()->routeAccueilBackOffice()));
     }
 
     /**

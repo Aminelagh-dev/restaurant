@@ -28,6 +28,16 @@
             @error('telephone') <span class="field-err">{{ $message }}</span> @enderror
         </div>
         <div class="field">
+            <label class="label">{{ __('Rôle') }} <span class="req">*</span></label>
+            <select name="role" class="select @error('role') has-err @enderror" required>
+                @foreach (\App\Models\User::ROLES_BACK_OFFICE as $cle => $libelle)
+                    <option value="{{ $cle }}" @selected(old('role', $gerant->role ?: \App\Models\User::ROLE_ADMIN) === $cle)>{{ __($libelle) }}</option>
+                @endforeach
+            </select>
+            <span class="field-hint">{{ __('L’opérateur ne voit que les commandes et fait avancer leur statut.') }}</span>
+            @error('role') <span class="field-err">{{ $message }}</span> @enderror
+        </div>
+        <div class="field">
             <label class="label">{{ __('Mot de passe') }} @unless ($estEdition)<span class="req">*</span>@endunless</label>
             <input type="password" name="password" class="input @error('password') has-err @enderror" autocomplete="new-password" {{ $estEdition ? '' : 'required' }}>
             @if ($estEdition)

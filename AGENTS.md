@@ -15,11 +15,12 @@ Application web Laravel 12 permettant aux clients de découvrir et commander des
 
 ```
 app/
-  Http/Controllers/   # PlatsController, CommandeController, CategorieController, etc.
-  Models/             # Plat, Commande, Client, Categorie, Thematique, Statut, etc.
+  Http/Controllers/   # PlatsController, CommandeController, CategorieController, StaffController, etc.
+  Http/Middleware/    # EnsureUserIsAdmin (alias `admin`), EnsureCanAccessBackOffice (alias `staff`)
+  Models/             # Plat, Commande, Client, Categorie, User (rôles), DetailStatut, etc.
 database/migrations/  # Schéma métier (plats, commandes, catégories, thématiques…)
 resources/views/      # Vues Blade (front-office + back-office)
-routes/web.php        # Routes HTTP
+routes/web.php        # Routes HTTP (commandes : auth+staff ; reste /admin : auth+admin)
 ```
 
 ## Domaine métier
@@ -36,7 +37,8 @@ routes/web.php        # Routes HTTP
 - **Commandes** — adresse_livraison, statut
 - **Commandes_plats** — pivot commande ↔ plats (quantités)
 - **Statuts** — En attente, En préparation, En cours de livraison, Livrée
-- **DetailStatut** — historique des statuts d'une commande (`details_statuses`) : commande, statut, date d'action (hors statut initial « en attente », porté par `created_at`)
+- **DetailStatut** — historique des statuts d'une commande (`details_statuses`) : commande, statut, date d'action (hors statut initial « en attente », porté par `created_at`). Un retour à un statut antérieur purge les entrées des statuts postérieurs.
+- **Users / rôles** — comptes du back-office. `role` (string) : `client`, `admin` (gérant, accès complet), `operator` (opérateur, **commandes uniquement** : statut courant + avance d'un cran). Colonne `actif` pour la désactivation.
 
 ### Front-Office (client)
 
@@ -46,12 +48,21 @@ routes/web.php        # Routes HTTP
 4. Passage de commande (adresse + destinataire)
 5. Suivi de commande par statut
 
-### Back-Office (gérant)
+### Back-Office (`/admin`, authentifié)
 
-1. CRUD carte (plats, prix, disponibilité)
-2. Gestion catégories et thématiques régionales
-3. Gestion commandes (liste chronologique, changement de statut)
-4. Tableau de bord (plats populaires, CA quotidien)
+Deux rôles, deux portées d'accès (middlewares `admin` et `staff`) :
+
+- **Gérant (`admin`)** — accès complet :
+  1. CRUD carte (plats, prix, disponibilité)
+  2. Gestion catégories et thématiques régionales
+  3. Gestion commandes — liste chronologique, changement de statut (sélecteur borné aux
+     statuts déjà atteints + le tout premier suivant ; un recul purge l'historique)
+  4. Tableau de bord (plats populaires, CA quotidien)
+  5. Gestion de l'équipe (gérants & opérateurs : création/édition, activation/désactivation)
+- **Opérateur (`operator`)** — uniquement la page **Commandes** : statut courant +
+  bouton « Marquer … » faisant avancer la commande au **statut suivant** seulement.
+
+Comptes de démo : `admin@riad.test` et `operator@riad.test` (mot de passe `password`).
 
 ## Conventions de code
 

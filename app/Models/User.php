@@ -14,6 +14,15 @@ class User extends Authenticatable
 
     public const ROLE_CLIENT = 'client';
     public const ROLE_ADMIN = 'admin';
+    public const ROLE_OPERATOR = 'operator';
+
+    /**
+     * Rôles disposant d'un accès au back-office (espace gérant) et leurs libellés.
+     */
+    public const ROLES_BACK_OFFICE = [
+        self::ROLE_ADMIN => 'Gérant',
+        self::ROLE_OPERATOR => 'Opérateur',
+    ];
 
     /**
      * The attributes that are mass assignable.
@@ -59,11 +68,43 @@ class User extends Authenticatable
         return $this->role === self::ROLE_ADMIN;
     }
 
+    public function isOperator(): bool
+    {
+        return $this->role === self::ROLE_OPERATOR;
+    }
+
     /**
      * Le gérant peut-il accéder au back-office : rôle admin ET compte actif.
      */
     public function peutGerer(): bool
     {
         return $this->isAdmin() && (bool) $this->actif;
+    }
+
+    /**
+     * L'utilisateur peut-il accéder à l'espace gérant : rôle admin OU opérateur,
+     * ET compte actif. L'opérateur n'a accès qu'à la page des commandes ;
+     * la restriction fine est portée par le routage et les vues.
+     */
+    public function peutAccederBackOffice(): bool
+    {
+        return ($this->isAdmin() || $this->isOperator()) && (bool) $this->actif;
+    }
+
+    /**
+     * Libellé lisible du rôle (« Gérant », « Opérateur »…).
+     */
+    public function roleLabel(): string
+    {
+        return self::ROLES_BACK_OFFICE[$this->role] ?? $this->role;
+    }
+
+    /**
+     * Nom de la route d'accueil du back-office selon le rôle : l'opérateur est
+     * dirigé vers les commandes (seule page qui lui est accessible).
+     */
+    public function routeAccueilBackOffice(): string
+    {
+        return $this->isOperator() ? 'admin.commandes.index' : 'admin.dashboard';
     }
 }

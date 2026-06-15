@@ -12,8 +12,8 @@
 | **Stack version** | Laravel 12 · PHP 8.2+ · Vite 7 · Tailwind CSS 4 |
 | **Database** | SQLite (default) or MySQL |
 | **Interface languages** | French (default) · English · العربية (RTL) |
-| **Authentication** | Protected back-office (manager login + `admin` role) |
-| **Document date** | June 13, 2026 |
+| **Authentication** | Protected back-office (login + `admin` and `operator` roles) |
+| **Document date** | June 15, 2026 |
 
 > **Recent updates integrated in this version**
 > 1. **Internationalization (i18n)** — multilingual interface FR / EN / AR with
@@ -23,6 +23,14 @@
 > 3. **Front-office navigation** — a **Sign in** button for visitors, **Manager area**
 >    + **Sign out** buttons for a logged-in manager.
 > 4. **Idempotent seeders** — no more duplicate menu items when re-running the seeder.
+> 5. **`operator` role** — a new back-office profile limited to the **orders page**: it
+>    sees the current status and can only **advance the order by one step** (a "Mark …"
+>    button). The manager (`admin`) keeps full access.
+> 6. **Refined status flow** — the manager selector now offers only the **already-reached
+>    statuses + the very next one**; rolling **back purges the history** of later statuses
+>    (the order reappears "as new" at that step).
+> 7. **Navigation badge** — the sidebar counter and the bell dot now flag **pending**
+>    orders (no longer in-preparation ones).
 
 ---
 
@@ -124,15 +132,16 @@ app/
         CategorieController.php # Category CRUD
         ClientController.php    # Customer CRUD
         CommandeController.php  # Order management + statuses
-        StaffController.php     # Manager accounts (create / activate-deactivate)
+        StaffController.php     # Back-office accounts (managers & operators)
     Middleware/
-      SetLocale.php             # Applies the language (fr/en/ar) on each request
-      EnsureUserIsAdmin.php     # Restricts /admin to the "admin" role
+      SetLocale.php                  # Applies the language (fr/en/ar) on each request
+      EnsureUserIsAdmin.php          # Restricts a route to the "admin" role (alias `admin`)
+      EnsureCanAccessBackOffice.php  # Allows "admin" OR "operator" (alias `staff`)
     Requests/                   # Form Requests (validation)
   Models/                       # Plat, Categorie, Client, Commande, CommandePlat, User
   Support/
     Panier.php                  # Cart service (session)
-bootstrap/app.php               # Middleware (web + admin alias) + auth redirects
+bootstrap/app.php               # Middleware (web + admin/staff aliases) + auth redirects
 config/locales.php              # Supported languages + default language
 database/
   migrations/                   # Business schema
@@ -211,6 +220,10 @@ Six business tables structure the application.
 
 > The initial `en_attente` status is **not** recorded here: its timestamp is the
 > order's `created_at`. The table only holds the later transitions.
+>
+> When the manager **rolls an order back** to an earlier status, the rows for the target
+> step and **all later statuses** are deleted, then the target step is re-recorded: the
+> tracking timeline shows the later steps as "upcoming" again.
 
 #### `commande_plat` (order lines)
 | Column | Type | Notes |
@@ -232,8 +245,12 @@ Six business tables structure the application.
 | email | string (unique) | Login identifier |
 | telephone | string (nullable) | |
 | password | string (hashed) | |
-| role | enum | `client` · `admin` — only `admin` may access the back-office |
-| actif | boolean | Default `true`; a deactivated manager cannot sign in |
+| role | string | `client` · `admin` · `operator` — `admin` and `operator` may access the back-office (column converted from `enum` to string via migration to accept `operator`) |
+| actif | boolean | Default `true`; a deactivated account cannot sign in |
+
+> **Back-office roles.** `admin` (manager) can reach the whole back-office. `operator`
+> only reaches the **orders page**: they see the current status and can only **advance
+> the order by one step** (see §2.6 and §2.8).
 
 #### Eloquent relationships
 
@@ -272,22 +289,29 @@ Six business tables structure the application.
 | POST | `/admin/login` | `admin.login.attempt` | Authentication (**throttle 6/min**) |
 | POST | `/admin/logout` | `admin.logout` | Logout → back to home |
 
-#### Back-office (`/admin` prefix, protected by `auth` + `admin`)
+#### Orders (`/admin` prefix, protected by `auth` + `staff` — manager **or** operator)
+
+| Method | URL | Name | Action |
+|--------|-----|------|--------|
+| GET | `/admin/commandes` | `admin.commandes.index` | Chronological list (status filter) |
+| GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Order detail |
+| PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change status (manager: free roll-back / one step forward; operator: next status only) |
+
+#### Back-office (`/admin` prefix, protected by `auth` + `admin` — manager only)
 
 | Method | URL | Name | Action |
 |--------|-----|------|--------|
 | GET | `/admin` | `admin.dashboard` | Dashboard |
 | GET/POST/… | `/admin/plats` | `admin.plats.*` | Menu CRUD (except `show`) |
 | GET/POST/… | `/admin/categories` | `admin.categories.*` | Category CRUD (except `show`) |
-| GET | `/admin/commandes` | `admin.commandes.index` | Chronological list (status filter) |
-| GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Order detail |
-| PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change status |
 | GET/POST/… | `/admin/clients` | `admin.clients.*` | Customer CRUD (except `show`) |
-| GET/POST/… | `/admin/equipe` | `admin.equipe.*` | Staff (manager) accounts — index/create/edit |
-| PATCH | `/admin/equipe/{user}/statut` | `admin.equipe.statut` | Activate / deactivate a manager |
+| GET/POST/… | `/admin/equipe` | `admin.equipe.*` | Back-office accounts (managers & operators) — index/create/edit |
+| PATCH | `/admin/equipe/{user}/statut` | `admin.equipe.statut` | Activate / deactivate a member |
 
 > The whole `/admin` group (except `login`) is now protected: an unauthenticated
-> visitor is redirected to `/admin/login`.
+> visitor is redirected to `/admin/login`. Orders are reachable by managers **and**
+> operators (`staff`); everything else stays manager-only (`admin`). An operator who
+> tries to open any other back-office page gets a **403** error.
 
 ### 2.5 Front-office (customer area)
 
@@ -332,7 +356,9 @@ authentication state:
 
 ### 2.6 Back-office (manager area)
 
-> Access requires signing in with an `admin`-role account (see §2.8).
+> Access requires signing in. The **manager** (`admin`) reaches everything below; the
+> **operator** (`operator`) only reaches **order management** (see §2.8). The sidebar
+> shows the operator the "Orders" entry only.
 
 - **Dashboard** (`DashboardController`) — Key indicators:
   - Number of dishes, out-of-stock dishes, categories, customers, orders.
@@ -356,15 +382,22 @@ authentication state:
 - **Order management** (`CommandeController`) — Paginated chronological list
   (15/page), filterable by status, order detail, and **real-time status change**
   (Pending → In preparation → Out for delivery → Delivered). Each change is **logged**
-  in the status history (`details_statuses`).
+  in the status history (`details_statuses`). Depending on the role:
+  - **Manager** — a selector offers the **already-reached statuses + the very next one**:
+    they can roll back to any earlier step or advance by exactly one. Rolling back
+    **purges the history** of later statuses.
+  - **Operator** — no selector: they see the **current status** and a single "Mark …"
+    button that moves the order to the **immediately next status** (nothing once the order
+    is delivered). The restriction is also enforced server-side.
 
-- **Staff / team management** (`StaffController`, *System → Team*) — Create and edit
-  manager accounts, and **activate / deactivate** them. A deactivated manager can no
-  longer sign in. Guards prevent deactivating your own account or the last active
-  manager. New accounts are created with the `admin` role; passwords are hashed.
+- **Staff / team management** (`StaffController`, *System → Team*, **manager only**) —
+  Create and edit back-office accounts (managers **and** operators) through a **role**
+  selector, and **activate / deactivate** them. A deactivated account can no longer sign
+  in. Guards prevent deactivating or demoting your own account, or the **last active
+  manager**. Passwords are hashed; `role` is assigned explicitly (outside `$fillable`).
 
-The top bar and sidebar display the **logged-in manager** (name + initials) and a
-**sign-out** button.
+The top bar and sidebar display the **logged-in member** (name + initials + role) and a
+**sign-out** button. The sidebar badge and the bell dot count **pending** orders.
 
 ### 2.7 Key business rules
 
@@ -379,6 +412,12 @@ The top bar and sidebar display the **logged-in manager** (name + initials) and 
 - **Protected status**: the `statut` column (order) and `role` (user) are
   deliberately excluded from `$fillable` and assigned explicitly (anti
   mass-assignment).
+- **Bounded status transitions**: the operator can only advance to the **next status**;
+  the manager can roll back to any earlier step but can only **advance by one**. Any
+  forward jump of more than one status is rejected (**403**).
+- **Consistent history**: rolling back to an earlier status deletes the later statuses'
+  rows from `details_statuses` (the order becomes "new" again at that step); advancing
+  leaves existing rows untouched.
 - **Idempotent seeders**: the demo menu and customers are created via `updateOrCreate`
   / `firstOrCreate`; re-running `db:seed` creates **no duplicates**.
 
@@ -387,28 +426,36 @@ The top bar and sidebar display the **logged-in manager** (name + initials) and 
 The back-office is protected by Laravel's standard authentication, reinforced by a
 role check.
 
-- **Protected routes** — The entire `/admin/*` group (except login) is wrapped in the
-  `auth` **and** `admin` middleware.
-- **Role middleware** — `EnsureUserIsAdmin` (aliased `admin`) returns a **403** if the
-  user is not a manager (`isAdmin()`), as defense-in-depth behind `auth`.
+- **Roles** — `admin` (manager, full access) and `operator` (operator, **orders only**).
+  `client` has no back-office access.
+- **Protected routes** — Orders are wrapped in `auth` **+** `staff`; everything else
+  under `/admin/*` (except login) in `auth` **+** `admin`.
+- **Role middleware**:
+  - `EnsureUserIsAdmin` (aliased `admin`) — returns a **403** if the user is not a
+    manager (`isAdmin()`).
+  - `EnsureCanAccessBackOffice` (aliased `staff`) — allows an active manager **or**
+    operator (`peutAccederBackOffice()`); an operator therefore only reaches the orders,
+    the rest of the back-office returning **403**. An account deactivated mid-session is
+    cleanly signed out.
 - **Controller** — `Admin\AuthController` handles showing the form, signing in and
   signing out.
-- **Manager login screen** (`admin/login`) — an email + password form with a
-  "remember me" option, a theme toggle and a language switcher; fully translated
-  (FR / EN / AR).
+- **Login screen** (`admin/login`) — an email + password form with a "remember me"
+  option, a theme toggle and a language switcher; fully translated (FR / EN / AR).
 - **Sign-in** — `Auth::attempt`, then **session regeneration**; the **role is
   verified**: a `client`-role account is immediately signed out with the message
-  "This account does not have access to the manager area."
+  "This account does not have access to the manager area." After sign-in, each role lands
+  on its home page — the manager on the **dashboard**, the operator on the **orders**.
 - **Rate limiting** — `throttle:6,1` on the login attempt (brute-force protection).
 - **Sign-out** — invalidates the session, regenerates the CSRF token and redirects to
   the public home page. Available from the admin bar **and** from the front-office
-  navigation (when a manager is logged in).
+  navigation (when a member is logged in).
 - **Redirects** (configured in `bootstrap/app.php`) — an unauthenticated visitor on
-  `/admin` is sent to `/admin/login`; a logged-in manager who opens `/admin/login` is
-  sent to the dashboard.
+  `/admin` is sent to `/admin/login`; a logged-in member who opens `/admin/login` is sent
+  to their home page (dashboard or orders).
 
-**Demo manager account**: `admin@riad.test` / `password`. Accounts are provisioned via
-the seeder/database (no public sign-up; `role` is guarded against mass-assignment).
+**Demo accounts**: manager `admin@riad.test` / `password` and operator
+`operator@riad.test` / `password`. Accounts are provisioned via the seeder/database (no
+public sign-up; `role` is guarded against mass-assignment).
 
 ### 2.9 Internationalization (FR / EN / AR)
 
@@ -440,8 +487,11 @@ and **Arabic** (with right-to-left layout).
 
 Measures actually present in the code:
 
-- **Back-office authentication** — `/admin` routes behind `auth` + an `admin` role
-  middleware (403 otherwise); see §2.8.
+- **Back-office authentication** — `/admin` routes behind `auth` + a role middleware:
+  `admin` (manager) for the whole back-office, `staff` (manager or operator) for the
+  orders only (403 otherwise); see §2.8.
+- **Server-side status transitions** — advancing is bounded (operator: next status;
+  manager: one step at most), regardless of what the form shows.
 - **Login rate limiting** — `throttle:6,1` on `admin.login.attempt`.
 - **Session regeneration** on sign-in (session-fixation prevention).
 - **CSRF protection** on every form (`@csrf`).
@@ -514,8 +564,9 @@ npm run dev       # Vite (HMR) on http://localhost:5173
 
 ### Access and demo account (after `db:seed`)
 - **Customer site**: `http://127.0.0.1:8000/`
-- **Manager login**: `http://127.0.0.1:8000/admin/login`
+- **Back-office login**: `http://127.0.0.1:8000/admin/login`
 - **Manager credentials**: `admin@riad.test` / `password`
+- **Operator credentials**: `operator@riad.test` / `password` (orders access only)
 - **Language**: switch via the **FR · EN · AR** selector in the navigation.
 - Data: a full Moroccan menu (Harira, Tagines, Couscous, Pastilla, Desserts,
   Teas/Juices), 5 fictitious customers and orders spread over 7 days.
@@ -548,9 +599,11 @@ specification, plus the back-office security and interface translation:
 | Order management + status change | ✅ Done |
 | Dashboard (popular dishes, daily revenue) | ✅ Done |
 | **Manager authentication + `admin` role check** | ✅ Done |
+| **`operator` role (orders only, advance to next status)** | ✅ Done |
+| **Bounded status flow (one step forward, roll-back purges history)** | ✅ Done |
 | **Login screen + Sign in / Sign out buttons** | ✅ Done |
 | **Internationalization FR / EN / AR (+ RTL)** | ✅ Done |
-| **Staff management (create/edit, activate/deactivate managers)** | ✅ Done |
+| **Staff management (managers & operators: create/edit, activate/deactivate)** | ✅ Done |
 | **Idempotent seeders (no duplicate menu items)** | ✅ Done |
 | Demo data (menu + orders) | ✅ Done |
 | Light/dark theme, responsive design | ✅ Done |
@@ -645,4 +698,4 @@ conveniences rather than production prerequisites.
 
 ---
 
-*Document generated on June 13, 2026 — Riad Saveurs.*
+*Document generated on June 13, 2026, updated on June 15, 2026 — Riad Saveurs.*

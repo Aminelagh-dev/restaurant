@@ -62,8 +62,8 @@
 
                 {{-- Espace gérant : visible uniquement pour un gérant connecté ; sinon bouton de connexion. --}}
                 @auth
-                    @if (auth()->user()->isAdmin())
-                        <a href="{{ route('admin.dashboard') }}" class="btn btn-ghost btn-sm topnav-auth">
+                    @if (auth()->user()->peutAccederBackOffice())
+                        <a href="{{ route(auth()->user()->routeAccueilBackOffice()) }}" class="btn btn-ghost btn-sm topnav-auth">
                             <x-icon name="dashboard" size="16" /> {{ __('Espace gérant') }}
                         </a>
                     @endif

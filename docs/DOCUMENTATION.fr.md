@@ -12,8 +12,8 @@
 | **Version de la stack** | Laravel 12 · PHP 8.2+ · Vite 7 · Tailwind CSS 4 |
 | **Base de données** | SQLite (par défaut) ou MySQL |
 | **Langues de l'interface** | Français (défaut) · English · العربية (RTL) |
-| **Authentification** | Back-office protégé (connexion gérant + rôle `admin`) |
-| **Date du document** | 13 juin 2026 |
+| **Authentification** | Back-office protégé (connexion + rôles `admin` et `operator`) |
+| **Date du document** | 15 juin 2026 |
 
 > **Mises à jour récentes intégrées dans cette version**
 > 1. **Internationalisation (i18n)** — interface multilingue FR / EN / AR avec support
@@ -23,6 +23,14 @@
 > 3. **Navigation front-office** — bouton **Connexion** pour les visiteurs, **Espace
 >    gérant** + **Déconnexion** pour un gérant connecté.
 > 4. **Seeders idempotents** — plus aucun doublon de la carte lors d'un re-`seed`.
+> 5. **Rôle `operator` (opérateur)** — nouveau profil de back-office limité à la **page
+>    des commandes** : il consulte le statut courant et ne peut qu'**avancer la commande
+>    d'un cran** (bouton « Marquer … »). Le gérant (`admin`) garde tous ses accès.
+> 6. **Flux de statut affiné** — le gérant ne propose plus que les statuts **déjà
+>    atteints + le tout premier suivant** ; un **retour en arrière purge l'historique**
+>    des statuts postérieurs (la commande réapparaît « comme neuve » à cette étape).
+> 7. **Badge de navigation** — le compteur de la barre latérale et la pastille de la
+>    cloche signalent désormais les commandes **en attente** (et non plus en préparation).
 
 ---
 
@@ -125,15 +133,16 @@ app/
         CategorieController.php # CRUD catégories
         ClientController.php    # CRUD clients
         CommandeController.php  # Gestion des commandes + statuts
-        StaffController.php     # Comptes gérants (création / activation-désactivation)
+        StaffController.php     # Comptes back-office (gérants & opérateurs)
     Middleware/
-      SetLocale.php             # Applique la langue (fr/en/ar) à chaque requête
-      EnsureUserIsAdmin.php     # Réserve /admin au rôle « admin »
+      SetLocale.php                  # Applique la langue (fr/en/ar) à chaque requête
+      EnsureUserIsAdmin.php          # Réserve une route au rôle « admin » (alias `admin`)
+      EnsureCanAccessBackOffice.php  # Autorise « admin » OU « operator » (alias `staff`)
     Requests/                   # Form Requests (validation)
   Models/                       # Plat, Categorie, Client, Commande, CommandePlat, User
   Support/
     Panier.php                  # Service panier (session)
-bootstrap/app.php               # Middlewares (web + alias admin) + redirections auth
+bootstrap/app.php               # Middlewares (web + alias admin/staff) + redirections auth
 config/locales.php              # Langues prises en charge + langue par défaut
 database/
   migrations/                   # Schéma métier
@@ -212,6 +221,10 @@ Six tables métier structurent l'application.
 
 > Le statut initial `en_attente` n'est **pas** historisé ici : son horodatage est le
 > `created_at` de la commande. La table ne contient que les transitions suivantes.
+>
+> Lors d'un **retour en arrière** (le gérant remet un statut antérieur), les entrées de
+> l'étape cible et de **tous les statuts postérieurs** sont supprimées puis l'étape cible
+> est ré-enregistrée : la frise de suivi réaffiche les étapes suivantes comme « à venir ».
 
 #### `commande_plat` (lignes de commande)
 | Colonne | Type | Notes |
@@ -233,8 +246,12 @@ Six tables métier structurent l'application.
 | email | string (unique) | Identifiant de connexion |
 | telephone | string (nullable) | |
 | password | string (hashed) | |
-| role | enum | `client` · `admin` — seul `admin` accède au back-office |
-| actif | boolean | Défaut `true` ; un gérant désactivé ne peut plus se connecter |
+| role | string | `client` · `admin` · `operator` — `admin` et `operator` accèdent au back-office (colonne convertie d'`enum` en chaîne par migration pour accueillir `operator`) |
+| actif | boolean | Défaut `true` ; un compte désactivé ne peut plus se connecter |
+
+> **Rôles du back-office.** `admin` (gérant) a accès à tout le back-office. `operator`
+> (opérateur) n'accède qu'à la **page des commandes** : il voit le statut courant et ne
+> peut que faire **avancer la commande d'un cran** (cf. §2.6 et §2.8).
 
 #### Relations Eloquent
 
@@ -273,22 +290,29 @@ Six tables métier structurent l'application.
 | POST | `/admin/login` | `admin.login.attempt` | Authentification (**throttle 6/min**) |
 | POST | `/admin/logout` | `admin.logout` | Déconnexion → retour à l'accueil |
 
-#### Back-office (préfixe `/admin`, protégé par `auth` + `admin`)
+#### Commandes (préfixe `/admin`, protégé par `auth` + `staff` — gérant **ou** opérateur)
+
+| Méthode | URL | Nom | Action |
+|---------|-----|-----|--------|
+| GET | `/admin/commandes` | `admin.commandes.index` | Liste chronologique (filtre statut) |
+| GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Détail d'une commande |
+| PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change le statut (gérant : recul libre / avance d'un cran ; opérateur : statut suivant uniquement) |
+
+#### Back-office (préfixe `/admin`, protégé par `auth` + `admin` — gérant uniquement)
 
 | Méthode | URL | Nom | Action |
 |---------|-----|-----|--------|
 | GET | `/admin` | `admin.dashboard` | Tableau de bord |
 | GET/POST/… | `/admin/plats` | `admin.plats.*` | CRUD carte (sauf `show`) |
 | GET/POST/… | `/admin/categories` | `admin.categories.*` | CRUD catégories (sauf `show`) |
-| GET | `/admin/commandes` | `admin.commandes.index` | Liste chronologique (filtre statut) |
-| GET | `/admin/commandes/{commande}` | `admin.commandes.show` | Détail d'une commande |
-| PATCH | `/admin/commandes/{commande}/statut` | `admin.commandes.statut` | Change le statut |
 | GET/POST/… | `/admin/clients` | `admin.clients.*` | CRUD clients (sauf `show`) |
-| GET/POST/… | `/admin/equipe` | `admin.equipe.*` | Comptes gérants — liste/création/édition |
-| PATCH | `/admin/equipe/{user}/statut` | `admin.equipe.statut` | Activer / désactiver un gérant |
+| GET/POST/… | `/admin/equipe` | `admin.equipe.*` | Comptes back-office (gérants & opérateurs) — liste/création/édition |
+| PATCH | `/admin/equipe/{user}/statut` | `admin.equipe.statut` | Activer / désactiver un membre |
 
 > Tout le groupe `/admin` (hors `login`) est désormais protégé : un visiteur non
-> authentifié est redirigé vers `/admin/login`.
+> authentifié est redirigé vers `/admin/login`. Les commandes sont accessibles aux
+> gérants **et** aux opérateurs (`staff`) ; le reste reste réservé aux gérants (`admin`).
+> Un opérateur qui tente d'ouvrir une autre page du back-office reçoit une erreur **403**.
 
 ### 2.5 Front-office (espace client)
 
@@ -334,7 +358,9 @@ Six tables métier structurent l'application.
 
 ### 2.6 Back-office (espace gérant)
 
-> L'accès nécessite une connexion avec un compte de rôle `admin` (voir §2.8).
+> L'accès nécessite une connexion. Le **gérant** (`admin`) accède à tout ce qui suit ;
+> l'**opérateur** (`operator`) n'accède qu'à la **gestion des commandes** (voir §2.8).
+> La barre latérale n'affiche à l'opérateur que l'entrée « Commandes ».
 
 - **Tableau de bord** (`DashboardController`) — Indicateurs clés :
   - Nombre de plats, plats épuisés, catégories, clients, commandes.
@@ -360,15 +386,24 @@ Six tables métier structurent l'application.
   (15/page), filtrable par statut, détail d'une commande, et **changement de statut**
   en temps réel (En attente → En préparation → En cours de livraison → Livrée).
   Chaque changement est **journalisé** dans l'historique de statut (`details_statuses`).
+  Selon le rôle :
+  - **Gérant** — un sélecteur propose les statuts **déjà atteints + le tout premier
+    suivant** : il peut donc revenir à n'importe quelle étape antérieure ou n'avancer
+    que d'un cran. Un retour en arrière **purge l'historique** des statuts postérieurs.
+  - **Opérateur** — pas de sélecteur : il voit le **statut courant** et un unique bouton
+    « Marquer … » qui fait passer la commande au **statut immédiatement suivant** (rien
+    lorsque la commande est livrée). La restriction est aussi appliquée côté serveur.
 
-- **Gestion de l'équipe** (`StaffController`, *Système → Équipe*) — Création et
-  modification des comptes gérants, et **activation / désactivation**. Un gérant
-  désactivé ne peut plus se connecter. Des garde-fous empêchent de désactiver son
-  propre compte ou le dernier gérant actif. Les nouveaux comptes sont créés avec le
-  rôle `admin` ; les mots de passe sont hachés.
+- **Gestion de l'équipe** (`StaffController`, *Système → Équipe*, **gérant uniquement**) —
+  Création et modification des comptes du back-office (gérants **et** opérateurs) via un
+  sélecteur de **rôle**, et **activation / désactivation**. Un compte désactivé ne peut
+  plus se connecter. Des garde-fous empêchent de désactiver ou de rétrograder son propre
+  compte, ainsi que le **dernier gérant actif**. Les mots de passe sont hachés ; `role`
+  est affecté explicitement (hors `$fillable`).
 
-La barre supérieure et la barre latérale affichent le **gérant connecté** (nom +
-initiales) et un bouton de **déconnexion**.
+La barre supérieure et la barre latérale affichent le **membre connecté** (nom +
+initiales + rôle) et un bouton de **déconnexion**. Le badge de la barre latérale et la
+pastille de la cloche comptent les commandes **en attente**.
 
 ### 2.7 Règles métier importantes
 
@@ -384,6 +419,12 @@ initiales) et un bouton de **déconnexion**.
 - **Statut protégé** : la colonne `statut` (commande) et `role` (utilisateur) sont
   volontairement exclues du `$fillable` et affectées explicitement (anti
   mass-assignment).
+- **Transitions de statut encadrées** : l'opérateur ne peut qu'avancer au **statut
+  suivant** ; le gérant peut revenir à n'importe quelle étape antérieure mais ne peut
+  **avancer que d'un cran**. Tout saut en avant de plus d'un statut est refusé (**403**).
+- **Historique cohérent** : un retour à un statut antérieur supprime de
+  `details_statuses` les entrées des statuts postérieurs (la commande redevient « neuve »
+  à cette étape) ; une avancée ne touche pas aux entrées existantes.
 - **Seeders idempotents** : la carte et les clients de démonstration sont créés via
   `updateOrCreate` / `firstOrCreate` ; relancer `db:seed` ne crée **aucun doublon**.
 
@@ -392,31 +433,38 @@ initiales) et un bouton de **déconnexion**.
 Le back-office est protégé par l'authentification standard de Laravel, renforcée par
 un contrôle de rôle.
 
-- **Routes protégées** — Tout le groupe `/admin/*` (hors connexion) est encapsulé dans
-  les middlewares `auth` **et** `admin`.
-- **Middleware de rôle** — `EnsureUserIsAdmin` (alias `admin`) renvoie une erreur
-  **403** si l'utilisateur n'est pas un gérant (`isAdmin()`), en défense en profondeur
-  derrière `auth`.
+- **Rôles** — `admin` (gérant, accès complet) et `operator` (opérateur, **commandes
+  uniquement**). `client` n'a aucun accès au back-office.
+- **Routes protégées** — Les commandes sont encapsulées dans `auth` **+** `staff` ; tout
+  le reste de `/admin/*` (hors connexion) dans `auth` **+** `admin`.
+- **Middlewares de rôle** :
+  - `EnsureUserIsAdmin` (alias `admin`) — renvoie **403** si l'utilisateur n'est pas un
+    gérant (`isAdmin()`).
+  - `EnsureCanAccessBackOffice` (alias `staff`) — autorise un gérant **ou** un opérateur
+    actif (`peutAccederBackOffice()`) ; un opérateur n'atteint donc que les commandes,
+    le reste du back-office lui renvoyant **403**. Un compte désactivé en cours de session
+    est déconnecté proprement.
 - **Contrôleur** — `Admin\AuthController` gère l'affichage du formulaire, la connexion
   et la déconnexion.
-- **Écran de connexion gérant** (`admin/login`) — formulaire e-mail + mot de passe +
+- **Écran de connexion** (`admin/login`) — formulaire e-mail + mot de passe +
   « se souvenir de moi », avec bascule de thème et sélecteur de langue ; entièrement
   traduit (FR / EN / AR).
 - **Connexion** — `Auth::attempt`, puis **régénération de session** ; le **rôle est
-  vérifié** : un compte de rôle `client` est immédiatement déconnecté avec le message
-  « Ce compte n'a pas accès à l'espace gérant ».
+  vérifié** : un compte `client` est immédiatement déconnecté avec le message « Ce compte
+  n'a pas accès à l'espace gérant ». Après connexion, chaque rôle est dirigé vers sa page
+  d'accueil — le gérant vers le **tableau de bord**, l'opérateur vers les **commandes**.
 - **Limitation de débit** — `throttle:6,1` sur la tentative de connexion (anti
   force-brute).
 - **Déconnexion** — ferme la session, régénère le jeton CSRF et redirige vers
   l'accueil public. Disponible depuis la barre admin **et** depuis la navigation
-  front-office (lorsqu'un gérant est connecté).
+  front-office (lorsqu'un membre est connecté).
 - **Redirections** (configurées dans `bootstrap/app.php`) — un visiteur non authentifié
-  sur `/admin` est renvoyé vers `/admin/login` ; un gérant déjà connecté qui ouvre
-  `/admin/login` est renvoyé vers le tableau de bord.
+  sur `/admin` est renvoyé vers `/admin/login` ; un membre déjà connecté qui ouvre
+  `/admin/login` est renvoyé vers sa page d'accueil (tableau de bord ou commandes).
 
-**Compte gérant de démonstration** : `admin@riad.test` / `password`. Les comptes sont
-provisionnés via le seeder/la base (pas d'inscription publique ; `role` protégé du
-mass-assignment).
+**Comptes de démonstration** : gérant `admin@riad.test` / `password` et opérateur
+`operator@riad.test` / `password`. Les comptes sont provisionnés via le seeder/la base
+(pas d'inscription publique ; `role` protégé du mass-assignment).
 
 ### 2.9 Internationalisation (FR / EN / AR)
 
@@ -449,8 +497,11 @@ et **arabe** (avec mise en page de droite à gauche).
 
 Mesures effectivement présentes dans le code :
 
-- **Authentification du back-office** — routes `/admin` derrière `auth` + middleware de
-  rôle `admin` (403 sinon) ; voir §2.8.
+- **Authentification du back-office** — routes `/admin` derrière `auth` + un middleware
+  de rôle : `admin` (gérant) pour tout le back-office, `staff` (gérant ou opérateur) pour
+  les seules commandes (403 sinon) ; voir §2.8.
+- **Transitions de statut côté serveur** — l'avancée est bornée (opérateur : statut
+  suivant ; gérant : +1 cran maximum), indépendamment de ce qu'affiche le formulaire.
 - **Limitation de débit à la connexion** — `throttle:6,1` sur `admin.login.attempt`.
 - **Régénération de session** à la connexion (prévention de la fixation de session).
 - **Protection CSRF** sur tous les formulaires (`@csrf`).
@@ -524,8 +575,9 @@ npm run dev       # Vite (HMR) sur http://localhost:5173
 
 ### Accès et compte de démonstration (après `db:seed`)
 - **Site client** : `http://127.0.0.1:8000/`
-- **Connexion gérant** : `http://127.0.0.1:8000/admin/login`
+- **Connexion back-office** : `http://127.0.0.1:8000/admin/login`
 - **Identifiants gérant** : `admin@riad.test` / `password`
+- **Identifiants opérateur** : `operator@riad.test` / `password` (accès aux commandes uniquement)
 - **Langue** : changer via le sélecteur **FR · EN · AR** dans la navigation.
 - Données : carte marocaine complète (Harira, Tagines, Couscous, Pastilla,
   Desserts, Thés/Jus), 5 clients fictifs et des commandes réparties sur 7 jours.
@@ -559,9 +611,11 @@ l'interface :
 | Gestion des commandes + changement de statut | ✅ Réalisé |
 | Tableau de bord (plats populaires, CA quotidien) | ✅ Réalisé |
 | **Authentification gérant + contrôle de rôle `admin`** | ✅ Réalisé |
+| **Rôle `operator` (commandes uniquement, avance au statut suivant)** | ✅ Réalisé |
+| **Flux de statut encadré (avance d'un cran, recul purgeant l'historique)** | ✅ Réalisé |
 | **Écran de connexion + boutons Connexion/Déconnexion** | ✅ Réalisé |
 | **Internationalisation FR / EN / AR (+ RTL)** | ✅ Réalisé |
-| **Gestion de l'équipe (création/édition, activation/désactivation des gérants)** | ✅ Réalisé |
+| **Gestion de l'équipe (gérants & opérateurs : création/édition, activation/désactivation)** | ✅ Réalisé |
 | **Seeders idempotents (aucun doublon de la carte)** | ✅ Réalisé |
 | Données de démonstration (carte + commandes) | ✅ Réalisé |
 | Thème clair/sombre, design responsive | ✅ Réalisé |
@@ -660,4 +714,4 @@ mise en production.
 
 ---
 
-*Document généré le 13 juin 2026 — Riad Saveurs.*
+*Document généré le 13 juin 2026, mis à jour le 15 juin 2026 — Riad Saveurs.*

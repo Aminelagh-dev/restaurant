@@ -3,6 +3,8 @@
 @section('title', __('Commandes'))
 @section('crumb', __('Commandes'))
 
+@php($estGerant = auth()->user()->isAdmin())
+
 @section('content')
     <div class="page-head">
         <div class="page-titles">
@@ -43,15 +45,32 @@
                             <td>{{ $commande->lignes_count }}</td>
                             <td class="cell-strong nowrap">{{ number_format($commande->montant_total, 2, ',', ' ') }} {{ __('DH') }}</td>
                             <td>
-                                <form method="POST" action="{{ route('admin.commandes.statut', $commande) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <select name="statut" class="select" style="padding: 7px 10px; font-size: 12.5px; min-width: 165px;" data-autosubmit-change>
-                                        @foreach ($statuts as $cle => $libelle)
-                                            <option value="{{ $cle }}" @selected($commande->statut === $cle)>{{ __($libelle) }}</option>
-                                        @endforeach
-                                    </select>
-                                </form>
+                                @if ($estGerant)
+                                    <form method="POST" action="{{ route('admin.commandes.statut', $commande) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <select name="statut" class="select" style="padding: 7px 10px; font-size: 12.5px; min-width: 165px;" data-autosubmit-change>
+                                            @foreach ($commande->statutsSelectionnables() as $cle => $libelle)
+                                                <option value="{{ $cle }}" @selected($commande->statut === $cle)>{{ __($libelle) }}</option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @else
+                                    {{-- Opérateur : statut courant + bouton vers le statut suivant uniquement. --}}
+                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                        <span class="badge badge-neutral"><span class="dot"></span> {{ __($commande->statutLabel()) }}</span>
+                                        @if ($commande->statutSuivant())
+                                            <form method="POST" action="{{ route('admin.commandes.statut', $commande) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="statut" value="{{ $commande->statutSuivant() }}">
+                                                <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size: 12.5px;">
+                                                    <x-icon name="check" size="15" stroke="2.2" /> {{ __('Marquer « :statut »', ['statut' => __($commande->statutSuivantLabel())]) }}
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endif
                             </td>
                             <td class="cell-actions">
                                 <a href="{{ route('admin.commandes.show', $commande) }}" class="ghost-icon" aria-label="{{ __('Détail') }}"><x-icon name="eye" size="17" /></a>
