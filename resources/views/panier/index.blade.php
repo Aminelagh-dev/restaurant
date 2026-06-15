@@ -40,7 +40,7 @@
                         <form method="POST" action="{{ route('panier.update', $plat) }}">
                             @csrf
                             @method('PATCH')
-                            <div class="qty" data-qty data-min="1" data-max="99" data-autosubmit>
+                            <div class="qty" data-qty data-min="1" data-max="99" data-cart-qty>
                                 <button type="button" data-step="-1" aria-label="{{ __('Moins') }}"><x-icon name="minus" size="14" stroke="2.2" /></button>
                                 <input type="hidden" name="quantite" value="{{ $ligne['quantite'] }}">
                                 <span class="val">{{ $ligne['quantite'] }}</span>
@@ -49,7 +49,7 @@
                         </form>
 
                         <div class="text-right nowrap" style="min-width: 92px;">
-                            <strong>{{ number_format($ligne['sous_total'], 2, ',', ' ') }} {{ __('DH') }}</strong>
+                            <strong data-line-subtotal>{{ number_format($ligne['sous_total'], 2, ',', ' ') }} {{ __('DH') }}</strong>
                         </div>
 
                         <form method="POST" action="{{ route('panier.destroy', $plat) }}">
@@ -65,8 +65,8 @@
                 <div class="card card-pad">
                     <h3 style="margin: 0 0 12px; font-size: 16px; font-weight: 800;">{{ __('Récapitulatif') }}</h3>
                     <div class="summary-row">
-                        <span>{{ __('Sous-total (:count article(s))', ['count' => $lignes->sum('quantite')]) }}</span>
-                        <span>{{ number_format($total, 2, ',', ' ') }} {{ __('DH') }}</span>
+                        <span data-articles-tpl="{{ __('Sous-total (:count article(s))', ['count' => ':count']) }}">{{ __('Sous-total (:count article(s))', ['count' => $lignes->sum('quantite')]) }}</span>
+                        <span data-cart-total>{{ number_format($total, 2, ',', ' ') }} {{ __('DH') }}</span>
                     </div>
                     <div class="summary-row">
                         <span>{{ __('Livraison') }}</span>
@@ -74,7 +74,7 @@
                     </div>
                     <div class="summary-row total">
                         <span>{{ __('Total') }}</span>
-                        <span>{{ number_format($total, 2, ',', ' ') }} {{ __('DH') }}</span>
+                        <span data-cart-total>{{ number_format($total, 2, ',', ' ') }} {{ __('DH') }}</span>
                     </div>
 
                     <a href="{{ route('checkout.create') }}" class="btn btn-primary btn-block" style="margin-top: 16px;">

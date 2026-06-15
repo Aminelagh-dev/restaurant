@@ -31,6 +31,9 @@
 >    (the order reappears "as new" at that step).
 > 7. **Navigation badge** — the sidebar counter and the bell dot now flag **pending**
 >    orders (no longer in-preparation ones).
+> 8. **AJAX cart** — adding to the cart from the menu and adjusting quantities on
+>    `/panier` happen **without a reload**: the cart counter, line subtotals and total
+>    update live (with a classic fallback when JavaScript is unavailable).
 
 ---
 
@@ -270,8 +273,8 @@ Six business tables structure the application.
 | GET | `/` | `menu.index` | Menu by categories (+ search `?q=`) |
 | GET | `/plats/{plat}` | `menu.show` | Dish detail + similar dishes |
 | GET | `/panier` | `panier.index` | Show cart |
-| POST | `/panier/{plat}` | `panier.store` | Add dish to cart |
-| PATCH | `/panier/{plat}` | `panier.update` | Change quantity |
+| POST | `/panier/{plat}` | `panier.store` | Add dish to cart (JSON on AJAX request) |
+| PATCH | `/panier/{plat}` | `panier.update` | Change quantity (JSON on AJAX request) |
 | DELETE | `/panier/{plat}` | `panier.destroy` | Remove a dish |
 | DELETE | `/panier` | `panier.clear` | Empty the cart |
 | GET | `/commander` | `checkout.create` | Order form |
@@ -327,8 +330,13 @@ Six business tables structure the application.
 
 3. **Cart (session-based)** — The cart is stored server-side in the session as
    `[dish_id => quantity]` via the `App\Support\Panier` service. The customer can
-   change quantities (auto-submitted), remove a dish or empty the cart. The total is
-   recomputed from the dishes' current prices.
+   change quantities, remove a dish or empty the cart. The total is recomputed from the
+   dishes' current prices. **AJAX add and quantity adjustment**: from the menu, the "Add"
+   button sends a background request (`PanierController` replies in JSON) and updates the
+   **cart counter** without reloading; on `/panier`, the − / + buttons recompute the
+   **line subtotal**, the **total** and the counter live. A classic form-submit fallback
+   is kept when JavaScript is unavailable (`panier.store` / `panier.update` then return a
+   redirect with a flash message).
 
 4. **Order placement** — The form asks for the customer's identity, the delivery
    address and the recipient's details. On submit:
@@ -519,6 +527,9 @@ Measures actually present in the code:
   cart, clock, logout…).
 - **Responsive**: top navigation with a dynamic cart counter and adaptive
   authentication buttons.
+- **AJAX interactions** (vanilla JS, `resources/js/app.js`): add-to-cart and quantity
+  adjustment without a reload, live update of the counter/subtotals/total and
+  confirmation toasts; each action keeps a classic form fallback.
 - **Separate layouts**: `layouts/app.blade.php` (front), `layouts/admin.blade.php`
   (back-office with a sidebar) and `layouts/auth.blade.php` (login screen).
 

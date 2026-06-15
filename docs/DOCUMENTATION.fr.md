@@ -31,6 +31,9 @@
 >    des statuts postérieurs (la commande réapparaît « comme neuve » à cette étape).
 > 7. **Badge de navigation** — le compteur de la barre latérale et la pastille de la
 >    cloche signalent désormais les commandes **en attente** (et non plus en préparation).
+> 8. **Panier en AJAX** — l'ajout au panier depuis le menu et le réglage des quantités
+>    sur `/panier` se font **sans rechargement** : le compteur du panier, les sous-totaux
+>    et le total se mettent à jour en direct (avec repli classique si JavaScript est absent).
 
 ---
 
@@ -271,8 +274,8 @@ Six tables métier structurent l'application.
 | GET | `/` | `menu.index` | Carte par catégories (+ recherche `?q=`) |
 | GET | `/plats/{plat}` | `menu.show` | Détail d'un plat + plats similaires |
 | GET | `/panier` | `panier.index` | Affiche le panier |
-| POST | `/panier/{plat}` | `panier.store` | Ajoute un plat au panier |
-| PATCH | `/panier/{plat}` | `panier.update` | Modifie la quantité |
+| POST | `/panier/{plat}` | `panier.store` | Ajoute un plat au panier (JSON si requête AJAX) |
+| PATCH | `/panier/{plat}` | `panier.update` | Modifie la quantité (JSON si requête AJAX) |
 | DELETE | `/panier/{plat}` | `panier.destroy` | Retire un plat |
 | DELETE | `/panier` | `panier.clear` | Vide le panier |
 | GET | `/commander` | `checkout.create` | Formulaire de commande |
@@ -328,8 +331,14 @@ Six tables métier structurent l'application.
 
 3. **Panier (en session)** — Le panier est stocké côté serveur en session sous la
    forme `[plat_id => quantité]` via le service `App\Support\Panier`. Le client peut
-   modifier les quantités (avec auto-soumission), retirer un plat ou vider le panier.
-   Le total est recalculé à partir du prix actuel des plats.
+   modifier les quantités, retirer un plat ou vider le panier. Le total est recalculé à
+   partir du prix actuel des plats. **Ajout et réglage des quantités en AJAX** : depuis
+   le menu, le bouton « Ajouter » envoie une requête en arrière-plan (`PanierController`
+   répond en JSON) et met à jour le **compteur du panier** sans recharger ; sur `/panier`,
+   les boutons − / + recalculent en direct le **sous-total de la ligne**, le **total** et
+   le compteur. Un repli sur la soumission classique du formulaire est conservé si
+   JavaScript est indisponible (les routes `panier.store` / `panier.update` renvoient
+   alors une redirection avec message flash).
 
 4. **Passage de commande** — Le formulaire demande l'identité du client, l'adresse
    de livraison et les coordonnées du destinataire. À la validation :
@@ -530,6 +539,9 @@ Mesures effectivement présentes dans le code :
   cart, clock, logout…).
 - **Responsive** : navigation supérieure avec compteur de panier dynamique et boutons
   d'authentification adaptatifs.
+- **Interactions AJAX** (vanilla JS, `resources/js/app.js`) : ajout au panier et réglage
+  des quantités sans rechargement, mise à jour en direct du compteur/sous-totaux/total et
+  toasts de confirmation ; chaque action conserve un repli par formulaire classique.
 - **Layouts séparés** : `layouts/app.blade.php` (front), `layouts/admin.blade.php`
   (back-office avec barre latérale) et `layouts/auth.blade.php` (écran de connexion).
 

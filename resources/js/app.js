@@ -86,6 +86,63 @@ function updateCartCount(count) {
     }
 }
 
+/* Met à jour la quantité d'une ligne du panier en AJAX (page /panier),
+   avec une légère temporisation pour grouper les clics rapides. */
+const cartQtyTimers = new WeakMap();
+
+function scheduleCartQty(wrap) {
+    clearTimeout(cartQtyTimers.get(wrap));
+    cartQtyTimers.set(wrap, window.setTimeout(() => sendCartQty(wrap), 350));
+}
+
+async function sendCartQty(wrap) {
+    const form = wrap.closest('form');
+    if (!form) return;
+
+    wrap.classList.add('is-loading');
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST', // _method=PATCH transmis via le champ caché du formulaire
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': token,
+                Accept: 'application/json',
+            },
+            body: new FormData(form),
+        });
+
+        if (!response.ok) throw new Error('bad status');
+        const data = await response.json();
+
+        // Sous-total de la ligne concernée.
+        const sub = wrap.closest('.cart-line')?.querySelector('[data-line-subtotal]');
+        if (sub && data.sousTotal) sub.textContent = data.sousTotal;
+
+        // Totaux du récapitulatif (sous-total + total).
+        if (data.total) {
+            document.querySelectorAll('[data-cart-total]').forEach((el) => {
+                el.textContent = data.total;
+            });
+        }
+
+        // Libellé « Sous-total (N article(s)) » reconstruit depuis son gabarit localisé.
+        const articles = document.querySelector('[data-articles-tpl]');
+        if (articles && typeof data.count === 'number') {
+            articles.textContent = articles.dataset.articlesTpl.replace(':count', data.count);
+        }
+
+        if (typeof data.count === 'number') updateCartCount(data.count);
+    } catch (e) {
+        // Échec : repli sur la soumission classique (rechargement de la page).
+        form.submit();
+        return;
+    } finally {
+        wrap.classList.remove('is-loading');
+    }
+}
+
 /* Soumet le formulaire d'ajout au panier en AJAX (avec repli classique). */
 async function submitCartForm(form) {
     if (form.dataset.busy === '1') return;
@@ -159,7 +216,8 @@ function bind() {
                       <button data-step="1">+</button>
                     </div>
        Si l'attribut data-autosubmit est présent, le formulaire parent est
-       soumis à chaque changement. */
+       soumis à chaque changement. Si data-cart-qty est présent, la nouvelle
+       quantité est envoyée en AJAX (mise à jour du panier sans rechargement). */
     document.querySelectorAll('[data-qty]').forEach((wrap) => {
         const valEl = wrap.querySelector('.val');
         const input = wrap.querySelector('input');
@@ -171,9 +229,12 @@ function bind() {
                 const current = parseInt((input ? input.value : valEl.textContent) || '1', 10);
                 let next = current + parseInt(btn.dataset.step, 10);
                 next = Math.max(min, Math.min(max, next));
+                if (next === current) return;
                 if (valEl) valEl.textContent = next;
                 if (input) input.value = next;
-                if (wrap.hasAttribute('data-autosubmit')) {
+                if (wrap.hasAttribute('data-cart-qty')) {
+                    scheduleCartQty(wrap);
+                } else if (wrap.hasAttribute('data-autosubmit')) {
                     wrap.closest('form')?.submit();
                 }
             });

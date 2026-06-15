@@ -44,7 +44,9 @@ routes/web.php        # Routes HTTP (commandes : auth+staff ; reste /admin : aut
 
 1. Menu gastronomique par catégories
 2. Détail repas (ingrédients, temps, prix)
-3. Panier (multi-plats, quantités, total)
+3. Panier (multi-plats, quantités, total) — ajout et réglage des quantités en **AJAX**
+   (compteur/sous-totaux/total mis à jour sans rechargement ; `PanierController` répond en
+   JSON aux requêtes AJAX, avec repli par formulaire classique)
 4. Passage de commande (adresse + destinataire)
 5. Suivi de commande par statut
 

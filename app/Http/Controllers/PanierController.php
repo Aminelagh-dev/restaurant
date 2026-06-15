@@ -50,13 +50,30 @@ class PanierController extends Controller
 
     /**
      * Met à jour la quantité d'un plat dans le panier.
+     *
+     * Répond en JSON aux requêtes AJAX (recalcul du sous-total, du total et du
+     * compteur sans rechargement), et par une redirection classique sinon.
      */
-    public function update(Request $request, Plat $plat): RedirectResponse
+    public function update(Request $request, Plat $plat): RedirectResponse|JsonResponse
     {
         $quantite = (int) $request->input('quantite', 1);
         Panier::set($plat->id, $quantite);
 
-        return back()->with('success', __('Panier mis à jour.'));
+        if (! $request->expectsJson()) {
+            return back()->with('success', __('Panier mis à jour.'));
+        }
+
+        $quantite = max($quantite, 0);
+        $sousTotal = round($plat->prix * $quantite, 2);
+
+        return response()->json([
+            'ok' => true,
+            'count' => Panier::count(),
+            'quantite' => $quantite,
+            'sousTotal' => number_format($sousTotal, 2, ',', ' ').' '.__('DH'),
+            'total' => number_format(Panier::total(), 2, ',', ' ').' '.__('DH'),
+            'message' => __('Panier mis à jour.'),
+        ]);
     }
 
     /**
