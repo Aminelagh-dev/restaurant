@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Plat;
 use App\Support\Panier;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -23,17 +24,28 @@ class PanierController extends Controller
 
     /**
      * Ajoute un plat au panier.
+     *
+     * Répond en JSON aux requêtes AJAX (mise à jour du compteur de panier sans
+     * rechargement), et par une redirection classique sinon (fonctionne sans JS).
      */
-    public function store(Request $request, Plat $plat): RedirectResponse
+    public function store(Request $request, Plat $plat): RedirectResponse|JsonResponse
     {
         if ($plat->estEpuise()) {
-            return back()->with('error', __('« :nom » est actuellement épuisé.', ['nom' => $plat->nom]));
+            $message = __('« :nom » est actuellement épuisé.', ['nom' => $plat->nom]);
+
+            return $request->expectsJson()
+                ? response()->json(['ok' => false, 'message' => $message, 'count' => Panier::count()], 422)
+                : back()->with('error', $message);
         }
 
         $quantite = max(1, (int) $request->input('quantite', 1));
         Panier::add($plat->id, $quantite);
 
-        return back()->with('success', __('« :nom » a été ajouté au panier.', ['nom' => $plat->nom]));
+        $message = __('« :nom » a été ajouté au panier.', ['nom' => $plat->nom]);
+
+        return $request->expectsJson()
+            ? response()->json(['ok' => true, 'message' => $message, 'count' => Panier::count()])
+            : back()->with('success', $message);
     }
 
     /**

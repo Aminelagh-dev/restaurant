@@ -30,6 +30,102 @@ function initTheme() {
 // Évite le flash : applique le thème dès le chargement du module.
 initTheme();
 
+/* =====================================================================
+   Panier — ajout en AJAX (sans rechargement de page)
+   ===================================================================== */
+
+const ICON_PATHS = {
+    check: '<path d="M5 13l4 4L19 7"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+};
+
+function iconSvg(name) {
+    return `<svg class="icon" width="13" height="13" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">${ICON_PATHS[name] || ''}</svg>`;
+}
+
+/* Affiche un toast (même rendu que les toasts flash serveur) puis le retire. */
+function showToast(message, type = 'ok') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.setAttribute('role', type === 'ok' ? 'status' : 'alert');
+
+    const ico = document.createElement('span');
+    ico.className = 'toast-ico';
+    ico.innerHTML = iconSvg(type === 'ok' ? 'check' : 'x');
+    toast.appendChild(ico);
+    toast.appendChild(document.createTextNode(' ' + message));
+
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('is-on'));
+    window.setTimeout(() => {
+        toast.classList.remove('is-on');
+        window.setTimeout(() => toast.remove(), 400);
+    }, 4200);
+}
+
+/* Met à jour (ou crée/retire) la pastille de compteur du panier dans la barre. */
+function updateCartCount(count) {
+    const cartBtn = document.querySelector('.cart-btn');
+    if (!cartBtn) return;
+
+    let badge = cartBtn.querySelector('.cart-count');
+    if (count > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'cart-count';
+            cartBtn.appendChild(badge);
+        }
+        badge.textContent = count;
+        badge.classList.remove('is-bump');
+        void badge.offsetWidth; // reflow : relance l'animation
+        badge.classList.add('is-bump');
+    } else if (badge) {
+        badge.remove();
+    }
+}
+
+/* Soumet le formulaire d'ajout au panier en AJAX (avec repli classique). */
+async function submitCartForm(form) {
+    if (form.dataset.busy === '1') return;
+    form.dataset.busy = '1';
+
+    const button = form.querySelector('[type="submit"]');
+    button?.classList.add('is-loading');
+    button?.setAttribute('disabled', 'disabled');
+
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': token,
+                Accept: 'application/json',
+            },
+            body: new FormData(form),
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (typeof data.count === 'number') updateCartCount(data.count);
+        showToast(data.message || (response.ok ? '✓' : 'Erreur'), response.ok ? 'ok' : 'err');
+    } catch (e) {
+        // Réseau indisponible : repli sur la soumission classique (rechargement).
+        form.dataset.busy = '0';
+        button?.classList.remove('is-loading');
+        button?.removeAttribute('disabled');
+        form.submit();
+        return;
+    }
+
+    button?.classList.remove('is-loading');
+    button?.removeAttribute('disabled');
+    form.dataset.busy = '0';
+}
+
 function bind() {
     /* ---- Toggle thème ---- */
     document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
@@ -45,6 +141,14 @@ function bind() {
     document.querySelectorAll('.toast').forEach((toast) => {
         requestAnimationFrame(() => toast.classList.add('is-on'));
         window.setTimeout(() => toast.classList.remove('is-on'), 4200);
+    });
+
+    /* ---- Ajout au panier en AJAX (menu) ---- */
+    document.querySelectorAll('form[data-cart-form]').forEach((form) => {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            submitCartForm(form);
+        });
     });
 
     /* ---- Steppers de quantité (panier / formulaire) ----
