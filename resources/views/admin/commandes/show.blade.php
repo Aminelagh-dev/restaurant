@@ -45,16 +45,33 @@
         <div class="stack" style="gap: 18px;">
             <div class="card card-pad">
                 <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 800;">{{ __('Statut') }}</h3>
-                <form method="POST" action="{{ route('admin.commandes.statut', $commande) }}" class="stack" style="gap: 12px;">
-                    @csrf
-                    @method('PATCH')
-                    <select name="statut" class="select">
-                        @foreach ($statuts as $cle => $libelle)
-                            <option value="{{ $cle }}" @selected($commande->statut === $cle)>{{ __($libelle) }}</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="btn btn-primary btn-block"><x-icon name="check" size="16" stroke="2.2" /> {{ __('Mettre à jour le statut') }}</button>
-                </form>
+                @if (auth()->user()->isAdmin())
+                    <form method="POST" action="{{ route('admin.commandes.statut', $commande) }}" class="stack" style="gap: 12px;">
+                        @csrf
+                        @method('PATCH')
+                        <select name="statut" class="select">
+                            @foreach ($commande->statutsSelectionnables() as $cle => $libelle)
+                                <option value="{{ $cle }}" @selected($commande->statut === $cle)>{{ __($libelle) }}</option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-block"><x-icon name="check" size="16" stroke="2.2" /> {{ __('Mettre à jour le statut') }}</button>
+                    </form>
+                @else
+                    {{-- Opérateur : statut courant + passage au statut suivant uniquement. --}}
+                    <div class="stack" style="gap: 12px;">
+                        <span class="badge badge-neutral" style="align-self: flex-start;"><span class="dot"></span> {{ __($commande->statutLabel()) }}</span>
+                        @if ($commande->statutSuivant())
+                            <form method="POST" action="{{ route('admin.commandes.statut', $commande) }}">
+                                @csrf
+                                @method('PATCH')
+                                <input type="hidden" name="statut" value="{{ $commande->statutSuivant() }}">
+                                <button type="submit" class="btn btn-primary btn-block"><x-icon name="check" size="16" stroke="2.2" /> {{ __('Marquer « :statut »', ['statut' => __($commande->statutSuivantLabel())]) }}</button>
+                            </form>
+                        @else
+                            <p class="muted" style="margin: 0; font-size: 13px;">{{ __('Commande livrée — aucune action supplémentaire.') }}</p>
+                        @endif
+                    </div>
+                @endif
             </div>
 
             <div class="card card-pad">

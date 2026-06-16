@@ -72,13 +72,76 @@ class Commande extends Model
     }
 
     /**
+     * Statut immédiatement suivant dans le cycle de vie de la commande, ou
+     * null si la commande est déjà livrée (dernier statut).
+     */
+    public function statutSuivant(): ?string
+    {
+        $cles = array_keys(self::STATUTS);
+        $position = array_search($this->statut, $cles, true);
+
+        if ($position === false || $position + 1 >= count($cles)) {
+            return null;
+        }
+
+        return $cles[$position + 1];
+    }
+
+    public function statutSuivantLabel(): ?string
+    {
+        $suivant = $this->statutSuivant();
+
+        return $suivant !== null ? self::STATUTS[$suivant] : null;
+    }
+
+    /**
+     * Position (index) d'un statut dans le cycle de vie ordonné, ou -1 s'il
+     * est inconnu. Par défaut, position du statut courant de la commande.
+     */
+    public function positionStatut(?string $statut = null): int
+    {
+        $position = array_search($statut ?? $this->statut, array_keys(self::STATUTS), true);
+
+        return $position === false ? -1 : $position;
+    }
+
+    /**
+     * Statuts proposés au gérant : tous les statuts déjà atteints (statut
+     * courant inclus) ainsi que le tout premier statut suivant — afin de
+     * pouvoir revenir à une étape antérieure ou n'avancer que d'un cran.
+     *
+     * @return array<string,string>  clé du statut => libellé
+     */
+    public function statutsSelectionnables(): array
+    {
+        // Longueur = positions 0..(courant + 1) ; array_slice borne au nombre réel.
+        return array_slice(self::STATUTS, 0, max($this->positionStatut(), 0) + 2, true);
+    }
+
+    /**
      * Change le statut de la commande et journalise la transition dans
      * l'historique (table `details_statuses`).
+     *
+     * Lors d'un retour en arrière (le gérant remet un statut antérieur), on
+     * purge de l'historique les entrées du statut cible et de tous les statuts
+     * postérieurs, puis on ré-enregistre proprement le statut cible : la
+     * commande réapparaît « comme neuve » à cette étape, sans trace des étapes
+     * suivantes (le suivi client les réaffiche alors comme à venir).
      */
     public function changerStatut(string $statut, ?Carbon $date = null): void
     {
+        $enArriere = $this->positionStatut($statut) < $this->positionStatut();
+
         $this->statut = $statut;
         $this->save();
+
+        if ($enArriere) {
+            $cles = array_keys(self::STATUTS);
+            $statutsAPurger = array_slice($cles, max($this->positionStatut($statut), 0));
+
+            $this->historiqueStatuts()->whereIn('statut', $statutsAPurger)->delete();
+        }
+
         $this->enregistrerHistoriqueStatut($date);
     }
 

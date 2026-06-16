@@ -33,7 +33,7 @@
             @if ($epuise)
                 <button class="btn btn-ghost btn-sm" disabled>{{ __('Indisponible') }}</button>
             @else
-                <form method="POST" action="{{ route('panier.store', $plat) }}">
+                <form method="POST" action="{{ route('panier.store', $plat) }}" data-cart-form>
                     @csrf
                     <button type="submit" class="btn btn-primary btn-sm">
                         <x-icon name="plus" size="15" stroke="2.2" /> {{ __('Ajouter') }}

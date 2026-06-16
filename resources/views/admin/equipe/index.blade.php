@@ -7,17 +7,17 @@
     <div class="page-head">
         <div class="page-titles">
             <h1>{{ __('Équipe') }}</h1>
-            <p>{{ __('Gérez les comptes gérants : création, modification, activation et désactivation.') }}</p>
+            <p>{{ __('Gérez les comptes gérants et opérateurs : création, modification, activation et désactivation.') }}</p>
         </div>
         <div class="page-actions">
-            <a href="{{ route('admin.equipe.create') }}" class="btn btn-primary"><x-icon name="plus" size="16" stroke="2.2" /> {{ __('Nouveau gérant') }}</a>
+            <a href="{{ route('admin.equipe.create') }}" class="btn btn-primary"><x-icon name="plus" size="16" stroke="2.2" /> {{ __('Nouveau membre') }}</a>
         </div>
     </div>
 
     <div class="table-wrap">
         <table class="data-table">
             <thead>
-                <tr><th>{{ __('Gérant') }}</th><th>{{ __('Email') }}</th><th>{{ __('Téléphone') }}</th><th>{{ __('Statut') }}</th><th></th></tr>
+                <tr><th>{{ __('Membre') }}</th><th>{{ __('Rôle') }}</th><th>{{ __('Email') }}</th><th>{{ __('Téléphone') }}</th><th>{{ __('Statut') }}</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach ($gerants as $gerant)
@@ -32,6 +32,9 @@
                                     @endif
                                 </span>
                             </div>
+                        </td>
+                        <td>
+                            <span class="badge {{ $gerant->isAdmin() ? 'badge-accent' : 'badge-neutral' }}">{{ __($gerant->roleLabel()) }}</span>
                         </td>
                         <td class="nowrap">{{ $gerant->email }}</td>
                         <td class="muted">{{ $gerant->telephone ?: '—' }}</td>
@@ -63,6 +66,6 @@
         </table>
     </div>
     <p class="muted" style="margin: 12px 4px 0; font-size: 12.5px;">
-        {{ __(':count gérant(s) · :actifs actif(s)', ['count' => $gerants->count(), 'actifs' => $actifs]) }}
+        {{ __(':count membre(s) · :actifs actif(s)', ['count' => $gerants->count(), 'actifs' => $actifs]) }}
     </p>
 @endsection

@@ -16,14 +16,18 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SetLocale::class,
         ]);
 
-        // Alias du contrôle de rôle gérant.
+        // Alias des contrôles d'accès au back-office.
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+            'staff' => \App\Http\Middleware\EnsureCanAccessBackOffice::class,
         ]);
 
-        // Redirections d'authentification vers l'espace gérant.
+        // Redirections d'authentification vers l'espace gérant. Un opérateur
+        // est dirigé vers les commandes (seule page qui lui est accessible).
         $middleware->redirectGuestsTo(fn () => route('admin.login'));
-        $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
+        $middleware->redirectUsersTo(fn ($request) => route(
+            $request->user()?->routeAccueilBackOffice() ?? 'admin.dashboard'
+        ));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

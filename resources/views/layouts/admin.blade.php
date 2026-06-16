@@ -42,7 +42,7 @@
                     <x-lang-switcher />
                     <a href="{{ route('admin.commandes.index') }}" class="icon-btn" aria-label="{{ __('Commandes') }}">
                         <x-icon name="bell" size="19" />
-                        @if (\App\Models\Commande::where('statut', \App\Models\Commande::STATUT_PREPARATION)->exists())
+                        @if (\App\Models\Commande::where('statut', \App\Models\Commande::STATUT_ATTENTE)->exists())
                             <span class="icon-dot"></span>
                         @endif
                     </a>
